@@ -56,7 +56,8 @@ def is_number(str):
         int(str)
         return True
     except ValueError:
-        return False    
+        return False
+#-------------------------------------------------------------------------------------------------            
 
 ################### FORUM VIEWS ################################################
 def forum_info(forum):
@@ -361,10 +362,13 @@ def thread_details():
         return  jsonify(code = 2, response = 'Not found requried params')
     # optional
     related = request.args.getlist('related')
-    
+
+      
     options = {}
     for rel in related:
-       options[rel] = True   
+        if rel == 'thread':
+            return jsonify(code = 3, response = 'Error related' )
+        options[rel] = True   
 
     resp = {}
     resp['code'] = 0
@@ -992,6 +996,8 @@ def post_details():
     if resp['response'] and resp['response'].get('code'):
         resp['code'] = resp['response'].get('code')
         resp['response'] = resp['response'].get('response')
+
+    print resp    
         
     return jsonify(resp)
 #-------------------------------------------------------------------------------------------------
@@ -1354,9 +1360,35 @@ def user_listFollowers():
     order = request.args.get('order')
     since_id = request.args.get('since_id')
 
-    ret = user_info(email, {'followers': 1, 'limit': limit, 'order': order, 'since_id': since_id})
+    conn = mysql.connect()
+    cursor = conn.cursor()
 
-    return jsonify(code = 0, response = ret)
+    sql = ("SELECT follower_email FROM followers"
+        " JOIN user ON followers.follower_email = user.email AND user_email = %s")
+    data = [email]
+    if since_id:
+        sql = sql + " AND user.id >= %s"
+        data.append(since_id)
+    if order:
+        sql = sql + " ORDER BY name " + order
+    else:
+         sql = sql + " ORDER BY name DESC"  
+    if limit:
+        sql = sql + " LIMIT %s"
+        data.append(int(limit))    
+
+    is_error = execute_query(sql, data, conn, cursor)
+    if is_error:
+        return is_error
+
+    array = []   
+    rets = cursor.fetchall()
+    for ret in rets:
+        array.append(user_info(ret[0]))
+
+    close_connection(conn, cursor)    
+
+    return jsonify(code = 0, response = array)
 #-------------------------------------------------------------------------------------------------
 
 
@@ -1371,9 +1403,35 @@ def user_listFollowing():
     order = request.args.get('order')
     since_id = request.args.get('since_id')
 
-    ret = user_info(email, {'following': 1, 'limit': limit, 'order': order, 'since_id': since_id})
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    sql = ("SELECT user_email FROM followers"
+            " JOIN user ON followers.user_email = user.email AND follower_email = %s")
+   
+    data = [email]
+    if since_id:
+        sql = sql + " AND user.id >= %s"
+        data.append(since_id)
+    if order:
+        sql = sql + " ORDER BY name " + order
+    else:
+         sql = sql + " ORDER BY name DESC"  
+    if limit:
+        sql = sql + " LIMIT %s"
+        data.append(int(limit))    
 
-    return jsonify(code = 0, response = ret)
+    is_error = execute_query(sql, data, conn, cursor)
+    if is_error:
+        return is_error
+
+    array = []   
+    rets = cursor.fetchall()
+    for ret in rets:
+        array.append(user_info(ret[0]))
+
+    close_connection(conn, cursor)  
+
+    return jsonify(code = 0, response = array)
 #-------------------------------------------------------------------------------------------------
 
 
@@ -1478,43 +1536,3 @@ def clear():
     close_connection(conn, cursor)               
 
     return jsonify(code = 0, response = "OK")
-
-
-@app.route('/test/')
-def test():
-    posts = []
-    posts.append({'path': '0001', 'childs': [], 'level': 0})
-    posts.append({'path': '0001.0001', 'childs': [], 'level': 1})
-    posts.append({'path': '0001.0001.0001', 'childs': [], 'level': 2})
-    posts.append({'path': '0001.0001.0002', 'childs': [], 'level': 2})
-    posts.append({'path': '0001.0001.0002.0001', 'childs': [], 'level': 3})
-    posts.append({'path': '0001.0002', 'childs': [], 'level': 1})
-    posts.append({'path': '0002', 'childs': [], 'level': 0})
-
-    resp = []
-    level = 0
-    num_points = 0
-
-    for post in posts:
-        plevel = post["level"]
-        if plevel == 0:
-            cur_post = post
-            parent_post = cur_post
-            resp.append(parent_post)
-            level = 1
-        elif plevel == level:
-            cur_post['childs'].append(post)
-        elif plevel > level:
-            cur_post = cur_post['childs'][-1]
-            cur_post['childs'].append(post)
-            level = level + 1;
-        elif plevel < level:
-            level = 0
-            cur_post = parent_post
-            while (plevel != level + 1):
-                cur_post = cur_post['childs'][-1]
-                level = level + 1
-            cur_post['childs'].append(post)    
-
-    return jsonify(r=resp)
-
