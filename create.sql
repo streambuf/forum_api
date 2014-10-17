@@ -1,13 +1,13 @@
-DROP DATABASE forum_db;
+DROP DATABASE IF EXISTS forum_db;
 CREATE DATABASE forum_db;
 use forum_db;
 
 CREATE TABLE user (
     id INT(11) NOT NULL,
     email VARCHAR(25) NOT NULL PRIMARY KEY,
-    username VARCHAR(25) NOT NULL,
-    name VARCHAR(25) NOT NULL,
-    about VARCHAR(35) NOT NULL,
+    username VARCHAR(25),
+    name VARCHAR(25),
+    about TEXT,
     isAnonymous TINYINT(1),
     INDEX iname (name)
 ) ENGINE=InnoDB;
@@ -85,11 +85,40 @@ CREATE TABLE followers (
     CONSTRAINT FOREIGN KEY (follower_email) REFERENCES user (email)
 ) ENGINE=InnoDB;
 
+
 DELIMITER $$
+
 DROP TRIGGER IF EXISTS count_post$$
 CREATE TRIGGER count_post BEFORE INSERT ON post
     FOR EACH ROW 
         BEGIN
             UPDATE thread SET posts = posts + 1 WHERE id = NEW.thread_id;
         END $$
+
+DROP TRIGGER IF EXISTS thread_deleted$$
+CREATE TRIGGER thread_deleted BEFORE UPDATE ON thread
+    FOR EACH ROW 
+        BEGIN
+            IF NEW.isDeleted = true AND OLD.isDeleted = false THEN
+                UPDATE post  SET isDeleted = True 
+                WHERE thread_id = OLD.id;
+            ELSEIF NEW.isDeleted = false AND OLD.isDeleted = true THEN
+                UPDATE post  SET isDeleted = False 
+                WHERE thread_id = OLD.id;
+            END IF;
+        END $$
+
+/*DROP TRIGGER IF EXISTS post_deleted$$
+CREATE TRIGGER post_deleted BEFORE UPDATE ON post
+    FOR EACH ROW 
+        BEGIN
+                IF NEW.isDeleted = true AND OLD.isDeleted = false THEN
+                    UPDATE thread  SET posts = posts - 1 
+                    WHERE id = NEW.thread_id;
+                ELSEIF NEW.isDeleted = false AND OLD.isDeleted = true THEN
+                    UPDATE thread  SET posts = posts + 1 
+                    WHERE id = NEW.thread_id;
+                END IF;
+           
+        END $$*/
 DELIMITER ;

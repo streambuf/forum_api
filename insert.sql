@@ -42,10 +42,3 @@ INSERT INTO
     ('2', 'max4@mail.ru', 'lena@mail.ru'),
     ('3', 'roma@mail.ru', 'max4@mail.ru');
 
-
-select id, path, level, parent_id from post  WHERE parent_id is NULL ORDER BY path;
-
-select path from post where path LIKE '000003%' ORDER by path;
-
-
-

@@ -516,23 +516,12 @@ def thread_remove():
     if is_error:
         return is_error
 
-    sql = ("SELECT id FROM post WHERE thread_id = %s")
-    data = [thread_id]
+    # sql = ("UPDATE post SET isDeleted = 1 WHERE thread_id = %s")
+    # data = [thread_id]
 
-    is_error = execute_query(sql, data, conn, cursor)
-    if is_error:
-        return is_error
-
-    rets = cursor.fetchall()
-
-    for ret in rets:
-        sql = ("UPDATE post SET isDeleted = 1 WHERE id = %s")
-        data = [ret[0]]
-
-        is_error = execute_query(sql, data, conn, cursor)
-        if is_error:
-            return is_error
-
+    # is_error = execute_query(sql, data, conn, cursor)
+    # if is_error:
+    #     return is_error    
 
     close_connection(conn, cursor)               
 
@@ -558,23 +547,12 @@ def thread_restore():
     if is_error:
         return is_error
 
-    sql = ("SELECT id FROM post WHERE thread_id = %s")
-    data = [thread_id]
+    # sql = ("UPDATE post SET isDeleted = 0 WHERE thread_id = %s")
+    # data = [thread_id]
 
-    is_error = execute_query(sql, data, conn, cursor)
-    if is_error:
-        return is_error
-
-    rets = cursor.fetchall()
-
-    for ret in rets:
-        sql = ("UPDATE post SET isDeleted = 0 WHERE id = %s")
-        data = [ret[0]]
-
-        is_error = execute_query(sql, data, conn, cursor)
-        if is_error:
-            return is_error    
-
+    # is_error = execute_query(sql, data, conn, cursor)
+    # if is_error:
+    #     return is_error    
 
     close_connection(conn, cursor)               
 
@@ -1180,25 +1158,8 @@ def user_info(user_email, options = None):
 
     subscriptions = get_array(cursor)
 
-    # for listFollowers (limit, order, since_id)
-    if options and options.get('followers'):
-        sql = ("SELECT follower_email FROM followers"
-            " JOIN user ON followers.follower_email = user.email AND user_email = %s")
-        if options.get('since_id'):
-            sql = sql + " AND user.id >= %s"
-            data.append(options['since_id'])
-        sql = sql + " ORDER BY name"     
-        if options.get('order') == 'asc':   
-            sql = sql + " ASC"
-        else:
-            sql = sql + " DESC"        
-        if options.get('limit'):
-            sql = sql + " LIMIT %s"
-            data.append(int(options['limit']))
-    else:
-        sql = ("SELECT follower_email FROM followers WHERE user_email = %s")
-        data = [user_email]     
-           
+    sql = ("SELECT follower_email FROM followers WHERE user_email = %s")
+    data = [user_email]     
     
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
@@ -1206,25 +1167,9 @@ def user_info(user_email, options = None):
         return {"code": 4, "response": "execute exception for:" + sql}
 
     followers = get_array(cursor)
-
-    # for listFollowing (limit, order, since_id)
-    if options and options.get('following'):
-        sql = ("SELECT user_email FROM followers"
-            " JOIN user ON followers.user_email = user.email AND follower_email = %s")
-        if options.get('since_id'):
-            sql = sql + " AND user.id >= %s"
-            data.append(options['since_id'])
-        sql = sql + " ORDER BY name"     
-        if options.get('order') == 'asc':   
-            sql = sql + " ASC"
-        else:
-            sql = sql + " DESC"        
-        if options.get('limit'):
-            sql = sql + " LIMIT %s"
-            data.append(int(options['limit']))
-    else:
-        sql = ("SELECT user_email FROM followers WHERE follower_email = %s")
-        data = [user_email]        
+    
+    sql = ("SELECT user_email FROM followers WHERE follower_email = %s")
+    data = [user_email]        
 
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
