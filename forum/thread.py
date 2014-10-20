@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, Flask
-from settings import mysql
+from settings import mysql, Codes
 from help_functions import *
 from entities_info import *
 from get_list_entities import *
@@ -18,13 +18,13 @@ def thread_create():
         user_email = request.json['user']
         forum_short_name = request.json['forum']
     except:
-        return error_code(2, "Not found requried params", conn, cursor)
+        return error_code(Codes.invalid_query, "Not found requried params", conn, cursor)
 
     conn = mysql.connect()
     cursor = conn.cursor()
 
     # Optional
-    is_deleted = replace_null(request.json.get('isDeleted')) 
+    is_deleted = request.json.get('isDeleted', False) 
 
     # find forum_id
     sql = ("SELECT id FROM forum WHERE short_name = %s")
@@ -38,7 +38,7 @@ def thread_create():
     if ret:
         forum_id = ret[0]
     else:
-        return error_code(1, 'forum not found', conn, cursor)        
+        return error_code(Codes.not_found, 'forum not found', conn, cursor)        
 
     sql = ("INSERT INTO thread (title, message, slug, date, user_email, forum_id,"
         "isDeleted, isClosed, forum_sname) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)")
@@ -58,7 +58,7 @@ def thread_create():
 
     close_connection(conn, cursor)
 
-    return jsonify({'code': 0, 'response':
+    return jsonify({'code': Codes.ok, 'response':
                 {'date': date, 'forum': forum_short_name, 'id': thread_id,
                  'isClosed': is_closed, 'isDeleted': is_deleted, 'message': message,
                  'slug': slug, 'title': title, 'user': user_email}})
@@ -69,19 +69,18 @@ def thread_details():
     # requried
     thread_id = request.args.get('thread')
     if thread_id is None:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
     # optional
     related = request.args.getlist('related')
 
-      
     options = {}
     for rel in related:
         if rel == 'thread':
-            return jsonify(code = 3, response = 'Error related' )
+            return jsonify(code = Codes.incorrect_query, response = 'Error related' )
         options[rel] = True   
 
     resp = {}
-    resp['code'] = 0
+    resp['code'] = Codes.ok
     resp['response'] = thread_info(thread_id, options) 
 
     if resp['response'] and resp['response'].get('code'):
@@ -112,7 +111,7 @@ def thread_close():
     try:
         thread_id = request.json['thread'] 
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -126,7 +125,7 @@ def thread_close():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = {"thread": thread_id})
+    return jsonify(code = Codes.ok, response = {"thread": thread_id})
 
 
 @thread.route('/open/', methods=['POST'])
@@ -135,7 +134,7 @@ def thread_open():
     try:
         thread_id = request.json['thread'] 
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -149,7 +148,7 @@ def thread_open():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = {"thread": thread_id})
+    return jsonify(code = Codes.ok, response = {"thread": thread_id})
 
 
 @thread.route('/remove/', methods=['POST'])
@@ -158,7 +157,7 @@ def thread_remove():
     try:
         thread_id = request.json['thread'] 
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -172,7 +171,7 @@ def thread_remove():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = {"thread": thread_id})
+    return jsonify(code = Codes.ok, response = {"thread": thread_id})
 
 
 @thread.route('/restore/', methods=['POST'])
@@ -181,7 +180,7 @@ def thread_restore():
     try:
         thread_id = request.json['thread'] 
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -195,7 +194,7 @@ def thread_restore():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = {"thread": thread_id})
+    return jsonify(code = Codes.ok, response = {"thread": thread_id})
 
 
 @thread.route('/subscribe/', methods=['POST'])
@@ -205,7 +204,7 @@ def thread_subscribe():
         thread_id = request.json['thread']
         email = request.json['user'] 
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -219,7 +218,7 @@ def thread_subscribe():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = {"thread": thread_id, "user": email})
+    return jsonify(code = Codes.ok, response = {"thread": thread_id, "user": email})
 
 
 @thread.route('/unsubscribe/', methods=['POST'])
@@ -229,7 +228,7 @@ def thread_unsubscribe():
         thread_id = request.json['thread']
         email = request.json['user'] 
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -243,7 +242,7 @@ def thread_unsubscribe():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = {"thread": thread_id, "user": email})    
+    return jsonify(code = Codes.ok, response = {"thread": thread_id, "user": email})    
 
 
 @thread.route('/update/', methods=['POST'])
@@ -254,7 +253,7 @@ def thread_update():
         slug = request.json['slug']
         thread_id = request.json['thread']
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -268,7 +267,7 @@ def thread_update():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = thread_info(thread_id))
+    return jsonify(code = Codes.ok, response = thread_info(thread_id))
 
 
 @thread.route('/vote/', methods=['POST'])
@@ -278,15 +277,19 @@ def thread_vote():
         vote = request.json['vote']
         thread_id = request.json['thread']
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
-    cursor = conn.cursor()    
-    
+    cursor = conn.cursor()  
+
+    sql = sql = "UPDATE thread SET"  
+
     if vote == 1:
-        sql = ("UPDATE thread SET likes = likes + 1, points = points + 1 WHERE id = %s")
+        sql = sql + " likes = likes + 1, points = points + 1"
     else:
-        sql = ("UPDATE thread SET dislikes = dislikes + 1, points = points - 1 WHERE id = %s")
+        sql = sql + " dislikes = dislikes + 1, points = points - 1"
+
+    sql = sql + " WHERE id = %s"    
     data = [thread_id]
 
     is_error = execute_query(sql, data, conn, cursor)
@@ -295,7 +298,7 @@ def thread_vote():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = thread_info(thread_id))
+    return jsonify(code = Codes.ok, response = thread_info(thread_id))
 
 
 @thread.route('/listPosts/', methods=['GET'])

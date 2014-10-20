@@ -8,3 +8,11 @@ app.config['MYSQL_DATABASE_PASSWORD'] = 'drovosek'
 app.config['MYSQL_DATABASE_DB'] = 'forum_db'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
+
+class Codes:
+	ok = 0
+	not_found = 1
+	invalid_query = 2
+	incorrect_query = 3
+	unknown_error = 4
+	user_exists = 5

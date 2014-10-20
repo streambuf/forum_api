@@ -1,5 +1,5 @@
 from flask import jsonify
-from settings import mysql
+from settings import mysql, Codes
 
 def execute_query(sql, data, conn, cursor):
     try:
@@ -7,7 +7,7 @@ def execute_query(sql, data, conn, cursor):
         conn.commit()
     except:
         conn.rollback()
-        error_info = error_code(4, 'execute exception for:' + sql, conn, cursor)
+        error_info = error_code(Codes.unknown_error, 'execute exception for:' + sql, conn, cursor)
         return error_info
     return None    
 
@@ -28,12 +28,6 @@ def get_array(cursor):
     for row in rets:
         array.append(row[0])
     return array
-
-
-def replace_null(param):
-    if param is None:
-        param = 'false'
-    return param    
 
 
 def is_number(str):

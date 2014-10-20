@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, Flask
-from settings import mysql
+from settings import mysql, Codes
 from help_functions import *
 from entities_info import *
 from get_list_entities import *
@@ -15,13 +15,13 @@ def user_create():
         name = request.json['name']
         email = request.json['email']
     except:
-        return jsonify(code = 2, response = 'Not found requried params')        
+        return jsonify(code = Codes.invalid_query, response = 'Not found requried params')        
     
     conn = mysql.connect()
     cursor = conn.cursor()
 
     # Optional
-    is_anonymous = replace_null(request.json.get('isAnonymous'))
+    is_anonymous = request.json.get('isAnonymous', False)
 
     # find user_id
     sql = ("SELECT id FROM user WHERE email = %s")
@@ -33,7 +33,7 @@ def user_create():
 
     ret = cursor.fetchone()
     if ret:
-        return error_code(5, 'This user already exists', conn, cursor) 
+        return error_code(Codes.user_exists, 'This user already exists', conn, cursor) 
     else:
         sql = ("SELECT MAX(id) FROM user")
         cursor.execute(sql)
@@ -55,7 +55,7 @@ def user_create():
 
     close_connection(conn, cursor)
 
-    return jsonify({'code': 0, 'response':
+    return jsonify({'code': Codes.ok, 'response':
                 {'about': about, 'email': email, 'id': user_id,
                  'isAnonymous': is_anonymous, 'name': name, 'username': username}})
 
@@ -65,10 +65,10 @@ def user_details():
     # Requried
     email = request.args.get('user')
     if email is None:
-        return  jsonify(code = 2, response = 'Not found requried params')  
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')  
 
     resp = {}
-    resp['code'] = 0
+    resp['code'] = Codes.ok
     resp['response'] = user_info(email)
 
     if resp['response'] and resp['response'].get('code'):
@@ -85,7 +85,7 @@ def user_follow():
         follower = request.json['follower']
         followee = request.json['followee']
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -108,7 +108,7 @@ def user_follow():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = user_info(follower))    
+    return jsonify(code = Codes.ok, response = user_info(follower))    
 
 
 @user.route('/listFollowers/', methods=['GET'])
@@ -116,41 +116,17 @@ def user_listFollowers():
     # Requried
     email = request.args.get('user')
     if email is None:
-        return  jsonify(code = 2, response = 'Not found requried params')       
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')       
     # Optional
     limit = request.args.get('limit')
     order = request.args.get('order')
     since_id = request.args.get('since_id')
 
-    conn = mysql.connect()
-    cursor = conn.cursor()
-
     sql = ("SELECT follower_email FROM followers"
         " JOIN user ON followers.follower_email = user.email AND user_email = %s")
-    data = [email]
-    if since_id:
-        sql = sql + " AND user.id >= %s"
-        data.append(since_id)
-    if order:
-        sql = sql + " ORDER BY name " + order
-    else:
-         sql = sql + " ORDER BY name DESC"  
-    if limit:
-        sql = sql + " LIMIT %s"
-        data.append(int(limit))    
-
-    is_error = execute_query(sql, data, conn, cursor)
-    if is_error:
-        return is_error
-
-    array = []   
-    rets = cursor.fetchall()
-    for ret in rets:
-        array.append(user_info(ret[0]))
-
-    close_connection(conn, cursor)    
-
-    return jsonify(code = 0, response = array)
+    
+    return get_list_users({"sql": sql, "email": email, "limit": limit, 
+        "order": order, "since_id": since_id}) 
 
 
 @user.route('/listFollowing/', methods=['GET'])
@@ -158,41 +134,17 @@ def user_listFollowing():
     # Requried
     email = request.args.get('user')
     if email is None:
-        return  jsonify(code = 2, response = 'Not found requried params')       
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')       
     # Optional
     limit = request.args.get('limit')
     order = request.args.get('order')
     since_id = request.args.get('since_id')
 
-    conn = mysql.connect()
-    cursor = conn.cursor()
     sql = ("SELECT user_email FROM followers"
             " JOIN user ON followers.user_email = user.email AND follower_email = %s")
    
-    data = [email]
-    if since_id:
-        sql = sql + " AND user.id >= %s"
-        data.append(since_id)
-    if order:
-        sql = sql + " ORDER BY name " + order
-    else:
-         sql = sql + " ORDER BY name DESC"  
-    if limit:
-        sql = sql + " LIMIT %s"
-        data.append(int(limit))    
-
-    is_error = execute_query(sql, data, conn, cursor)
-    if is_error:
-        return is_error
-
-    array = []   
-    rets = cursor.fetchall()
-    for ret in rets:
-        array.append(user_info(ret[0]))
-
-    close_connection(conn, cursor)  
-
-    return jsonify(code = 0, response = array)
+    return get_list_users({"sql": sql, "email": email, "limit": limit, 
+        "order": order, "since_id": since_id})
 
 
 @user.route('/unfollow/', methods=['POST'])
@@ -202,7 +154,7 @@ def user_unfollow():
         follower = request.json['follower']
         followee = request.json['followee']
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -216,7 +168,7 @@ def user_unfollow():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = user_info(follower))
+    return jsonify(code = Codes.ok, response = user_info(follower))
 
 
 @user.route('/updateProfile/', methods=['POST'])
@@ -227,7 +179,7 @@ def user_updateProfile():
         name = request.json['name']
         email = request.json['user']
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -241,7 +193,7 @@ def user_updateProfile():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = user_info(email))   
+    return jsonify(code = Codes.ok, response = user_info(email))   
 
 
 @user.route('/listPosts/', methods=['GET'])

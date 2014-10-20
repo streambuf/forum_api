@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from settings import mysql
+from settings import mysql, Codes
 from help_functions import *
 from entities_info import *
 from datetime import datetime
@@ -10,6 +10,7 @@ def get_list_threads(args):
 
     sql = ("SELECT date, dislikes, forum_id, isClosed, isDeleted, likes,"
         " message, points, posts, slug, title, user_email, forum_sname, id FROM thread WHERE")
+    
     if args.get('user_email'):
         sql = sql + " user_email = %s"
         data = [args['user_email']]
@@ -17,7 +18,7 @@ def get_list_threads(args):
         sql = sql + " forum_sname = %s"
         data = [args['forum']]
     else:    
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     if args.get('since'):
         sql = sql + " AND date >= %s"
@@ -52,7 +53,7 @@ def get_list_threads(args):
 
     close_connection(conn, cursor)
           
-    return jsonify(code = 0, response = array)
+    return jsonify(code = Codes.ok, response = array)
 
 
 def get_list_posts(args):
@@ -75,7 +76,7 @@ def get_list_posts(args):
         sql = sql + " user_email = %s"
         data = [args['user_email']]    
     else:    
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     if args.get('since'):
         sql = sql + " AND date >= %s"
@@ -177,4 +178,38 @@ def get_list_posts(args):
 
     close_connection(conn, cursor)
           
-    return jsonify(code = 0, response = resp)    
+    return jsonify(code = Codes.ok, response = resp)    
+
+
+def get_list_users(args):
+    conn = mysql.connect()
+    cursor = conn.cursor()
+
+    sql = args.get('sql')
+
+    data = [args.get('email')]
+    if args.get('since_id'):
+        sql = sql + " AND user.id >= %s"
+        data.append(args.get('since_id'))
+    if args.get('order'):
+        sql = sql + " ORDER BY name " + args.get('order')
+    else:
+         sql = sql + " ORDER BY name DESC"  
+    if args.get('limit'):
+        sql = sql + " LIMIT %s"
+        data.append(int(args.get('limit')))    
+
+    is_error = execute_query(sql, data, conn, cursor)
+    if is_error:
+        return is_error
+
+    array = []   
+    rets = cursor.fetchall()
+    
+    for ret in rets:
+        array.append(user_info(ret[0]))
+
+    close_connection(conn, cursor)
+
+    return jsonify(code = Codes.ok, response = array)
+

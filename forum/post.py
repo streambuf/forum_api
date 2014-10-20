@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, Flask
-from settings import mysql
+from settings import mysql, Codes
 from help_functions import *
 from entities_info import *
 from get_list_entities import *
@@ -16,18 +16,18 @@ def post_create():
         user_email = request.json['user']
         forum_short_name = request.json['forum']
     except:
-        return error_code(2, "Not found requried params", conn, cursor)
+        return error_code(Codes.invalid_query, "Not found requried params", conn, cursor)
 
     conn = mysql.connect()
     cursor = conn.cursor()            
     
     # Optional
     parent_id = request.json.get('parent')
-    is_approved = replace_null(request.json.get('isApproved'))
-    is_highlighted = replace_null(request.json.get('isHighlighted'))
-    is_edited = replace_null(request.json.get('isEdited'))
-    is_spam = replace_null(request.json.get('isSpam'))
-    is_deleted = replace_null(request.json.get('isDeleted'))
+    is_approved = request.json.get('isApproved', False)
+    is_highlighted = request.json.get('isHighlighted', False)
+    is_edited = request.json.get('isEdited', False)
+    is_spam = request.json.get('isSpam', False)
+    is_deleted = request.json.get('isDeleted', False)
 
     # find forum_id
     sql = ("SELECT id FROM forum WHERE short_name = %s")
@@ -41,7 +41,7 @@ def post_create():
     if ret:
         forum_id = ret[0]
     else:
-        return error_code(1, 'forum not found', conn, cursor)   
+        return error_code(Codes.not_found, 'forum not found', conn, cursor)   
 
     # create path
     num_digits = 6 # max nesting: 252 / 6 = 42  
@@ -99,7 +99,7 @@ def post_create():
 
     close_connection(conn, cursor)
 
-    return jsonify({'code': 0, 'response':
+    return jsonify({'code': Codes.ok, 'response':
                 {'date': date, 'forum': forum_short_name, 'id': post_id,
                  'isApproved': is_approved, 'isDeleted': is_deleted, 'isEdited': is_edited,
                  'isHighlighted': is_highlighted, 'isSpam': is_spam, 'message': message,
@@ -111,7 +111,7 @@ def post_details():
     # requried
     post_id = request.args.get('post')
     if post_id is None:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
     # optional
     related = request.args.getlist('related')
     
@@ -120,7 +120,7 @@ def post_details():
        options[rel] = True      
 
     resp = {}
-    resp['code'] = 0
+    resp['code'] = Codes.ok
     resp['response'] = post_info(post_id, options)
 
     if resp['response'] and resp['response'].get('code'):
@@ -154,7 +154,7 @@ def post_remove():
     try:
         post_id = request.json['post'] 
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -184,7 +184,7 @@ def post_remove():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = {"post": post_id}) 
+    return jsonify(code = Codes.ok, response = {"post": post_id}) 
 
 
 @post.route('/restore/', methods=['POST'])
@@ -193,7 +193,7 @@ def post_restore():
     try:
         post_id = request.json['post'] 
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -223,7 +223,7 @@ def post_restore():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = {"post": post_id}) 
+    return jsonify(code = Codes.ok, response = {"post": post_id}) 
 
 
 @post.route('/update/', methods=['POST'])
@@ -233,7 +233,7 @@ def post_update():
         message = request.json['message'] 
         post_id = request.json['post']
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
@@ -247,7 +247,7 @@ def post_update():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = post_info(post_id))
+    return jsonify(code = Codes.ok, response = post_info(post_id))
 
 
 @post.route('/vote/', methods=['POST'])
@@ -257,15 +257,19 @@ def post_vote():
         vote = request.json['vote']
         post_id = request.json['post']
     except:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
     conn = mysql.connect()
     cursor = conn.cursor()    
     
+    sql = sql = "UPDATE post SET"  
+
     if vote == 1:
-        sql = ("UPDATE post SET likes = likes + 1, points = points + 1 WHERE id = %s")
+        sql = sql + " likes = likes + 1, points = points + 1"
     else:
-        sql = ("UPDATE post SET dislikes = dislikes + 1, points = points - 1 WHERE id = %s")
+        sql = sql + " dislikes = dislikes + 1, points = points - 1"
+
+    sql = sql + " WHERE id = %s"    
     data = [post_id]
 
     is_error = execute_query(sql, data, conn, cursor)
@@ -274,4 +278,4 @@ def post_vote():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = post_info(post_id))
+    return jsonify(code = Codes.ok, response = post_info(post_id))

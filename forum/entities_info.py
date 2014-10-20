@@ -1,4 +1,4 @@
-from settings import mysql
+from settings import mysql, Codes
 from help_functions import *
 from datetime import datetime
 
@@ -16,7 +16,7 @@ def forum_info(forum):
     ret = cursor.fetchone()
     if ret is None:
         close_connection(conn, cursor)
-        return {"code": 1, "response": "Forum not found"}
+        return {"code": Codes.not_found, "response": "Forum not found"}
 
     close_connection(conn, cursor)
 
@@ -28,7 +28,7 @@ def thread_info(thread_id, options = None):
     cursor = conn.cursor()
 
     if not is_number(thread_id):
-        return {"code": 3, "response": "thread_id not digit"}
+        return {"code": Codes.incorrect_query, "response": "thread_id not digit"}
 
     sql = ("SELECT date, dislikes, forum_id, isClosed, isDeleted, likes,"
         " message, points, posts, slug, title, user_email, forum_sname FROM thread WHERE id = %s")
@@ -36,12 +36,12 @@ def thread_info(thread_id, options = None):
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         close_connection(conn, cursor)
-        return {"code": 4, "response": "execute exception for:" + sql}
+        return {"code": Codes.unknown_error, "response": "execute exception for:" + sql}
 
     ret = cursor.fetchone()
     if ret is None:
         close_connection(conn, cursor)
-        return {"code": 1, "response": "Thread not found"}
+        return {"code": Codes.not_found, "response": "Thread not found"}
 
     forum = ret[12]
 
@@ -66,7 +66,7 @@ def post_info(post_id, options = None):
     cursor = conn.cursor()
 
     if not is_number(post_id):
-        return {"code": 3, "response": "post_id not digit"}
+        return {"code": Codes.incorrect_query, "response": "post_id not digit"}
 
     sql = ("SELECT date, dislikes, forum, isApproved, isDeleted, isEdited,"
         " isHighlighted, isSpam, likes, message, parent_id, points, thread_id, user_email"
@@ -80,7 +80,7 @@ def post_info(post_id, options = None):
     ret = cursor.fetchone()
     if ret is None:
         close_connection(conn, cursor)
-        return {"code": 1, "response": "Thread not found"}
+        return {"code": Codes.not_found, "response": "Thread not found"}
 
     forum = ret[2]
 
@@ -114,12 +114,12 @@ def user_info(user_email, options = None):
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         close_connection(conn, cursor)
-        return {"code": 4, "response": "execute exception for:" + sql}
+        return {"code": Codes.unknown_error, "response": "execute exception for:" + sql}
 
     ret = cursor.fetchone()
     if ret is None:
         close_connection(conn, cursor)
-        return {"code": 1, "response": "User not found"}
+        return {"code": Codes.not_found, "response": "User not found"}
 
     # subscriptions
     sql = ("SELECT thread_id FROM subscriptions WHERE user_email = %s")    
@@ -127,7 +127,7 @@ def user_info(user_email, options = None):
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         close_connection(conn, cursor)
-        return {"code": 4, "response": "execute exception for:" + sql}
+        return {"code": Codes.unknown_error, "response": "execute exception for:" + sql}
 
     subscriptions = get_array(cursor)
 
@@ -137,7 +137,7 @@ def user_info(user_email, options = None):
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         close_connection(conn, cursor)
-        return {"code": 4, "response": "execute exception for:" + sql}
+        return {"code": Codes.unknown_error, "response": "execute exception for:" + sql}
 
     followers = get_array(cursor)
     
@@ -147,7 +147,7 @@ def user_info(user_email, options = None):
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         close_connection(conn, cursor)
-        return {"code": 4, "response": "execute exception for:" + sql}
+        return {"code": Codes.unknown_error, "response": "execute exception for:" + sql}
 
     following = get_array(cursor)
 

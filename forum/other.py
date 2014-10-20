@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, Flask
-from settings import mysql
+from settings import mysql, Codes
 from help_functions import *
 
 other = Blueprint('other', __name__, url_prefix='/db/api')
@@ -29,4 +29,4 @@ def clear():
 
     close_connection(conn, cursor)               
 
-    return jsonify(code = 0, response = "OK")
+    return jsonify(code = Codes.ok, response = "OK")

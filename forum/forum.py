@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, Flask
-from settings import mysql
+from settings import mysql, Codes
 from help_functions import *
 from entities_info import *
 from get_list_entities import *
@@ -13,7 +13,7 @@ def forum_create():
         short_name = request.json['short_name']
         user_email = request.json['user']
     except:
-        return error_code(2, "Not found requried params", conn, cursor)    
+        return error_code(Codes.invalid_query, "Not found requried params", conn, cursor)    
 
     conn = mysql.connect()
     cursor = conn.cursor()
@@ -43,7 +43,7 @@ def forum_create():
 
         ret = cursor.fetchone()
         if ret is None:
-            return error_code(1, 'user_email not found', conn, cursor)
+            return error_code(Codes.not_found, 'user_email not found', conn, cursor)
 
         sql = ("INSERT INTO forum (name, short_name, date, user_email) VALUES (%s, %s, %s, %s)")
         data = [name, short_name, datetime.now(), user_email]
@@ -62,7 +62,7 @@ def forum_create():
 
     close_connection(conn, cursor)
 
-    return jsonify({'code': 0, 'response':
+    return jsonify({'code': Codes.ok, 'response':
                 {'id': forum_id, 'name': name, 'short_name': short_name, 'user': user_email }})
 #-------------------------------------------------------------------------------------------------
 
@@ -73,10 +73,10 @@ def forum_details():
     forum = request.args.get('forum')
 
     if forum is None:
-        return  jsonify(code = 2, response = 'Not found requried params')
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
       
     resp = {}
-    resp['code'] = 0
+    resp['code'] = Codes.ok
     resp['response'] = forum_info(forum)
 
     if resp['response'] and resp['response'].get('code'):
@@ -117,44 +117,19 @@ def forum_list_threads():
 def forum_list_users():
     # requried
     forum = request.args.get('forum')
+    if forum is None:
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
     
     # optional
     since_id = request.args.get('since_id')
     limit = request.args.get('limit')
     order = request.args.get('order')
               
-    conn = mysql.connect()
-    cursor = conn.cursor()
-
-    if forum is None:
-        return  jsonify(code = 2, response = 'Not found requried params')
-
     sql = ("SELECT DISTINCT user_email FROM post"
         " JOIN user ON post.user_email = user.email AND post.forum = %s")
-    data = [forum]
-    if since_id:
-        sql = sql + " AND user.id >= %s"
-        data.append(since_id)
-    if order:
-        sql = sql + " ORDER BY name " + order
-    else:
-         sql = sql + " ORDER BY name DESC"  
-    if limit:
-        sql = sql + " LIMIT %s"
-        data.append(int(limit))    
 
-    is_error = execute_query(sql, data, conn, cursor)
-    if is_error:
-        return is_error
-
-    array = []   
-    rets = cursor.fetchall()
-    for ret in rets:
-        array.append(user_info(ret[0]))
-
-    close_connection(conn, cursor)
-          
-    return jsonify(code = 0, response = array) 
+    return get_list_users({"sql": sql, "email": forum, "limit": limit, 
+        "order": order, "since_id": since_id})
 #-------------------------------------------------------------------------------------------------
 
 
