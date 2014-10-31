@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, Flask
-from settings import mysql, Codes
+from settings import *
 from help_functions import *
 from entities_info import *
 from get_list_entities import *
@@ -16,9 +16,8 @@ def post_create():
         user_email = request.json['user']
         forum_short_name = request.json['forum']
     except:
-        return error_code(Codes.invalid_query, "Not found requried params", conn, cursor)
+        return error_code(Codes.invalid_query, "Not found requried params", cursor)
 
-    conn = mysql.connect()
     cursor = conn.cursor()            
     
     # Optional
@@ -33,7 +32,7 @@ def post_create():
     sql = ("SELECT id FROM forum WHERE short_name = %s")
     data = [forum_short_name]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error 
 
@@ -41,7 +40,7 @@ def post_create():
     if ret:
         forum_id = ret[0]
     else:
-        return error_code(Codes.not_found, 'forum not found', conn, cursor)   
+        return error_code(Codes.not_found, 'forum not found', cursor)   
 
     # create path
     num_digits = 6 # max nesting: 252 / 6 = 42  
@@ -51,7 +50,7 @@ def post_create():
         # find max child
         sql = ("SELECT MAX(path), level FROM post WHERE parent_id = %s")
         data = [parent_id]
-        is_error = execute_query(sql, data, conn, cursor)
+        is_error = execute_query(sql, data, cursor)
         if is_error:
             return is_error
         ret = cursor.fetchone()
@@ -62,7 +61,7 @@ def post_create():
         else: # else find parent    
             sql = ("SELECT path, level FROM post WHERE id = %s")
             data = [parent_id]
-            is_error = execute_query(sql, data, conn, cursor)
+            is_error = execute_query(sql, data, cursor)
             if is_error:
                 return is_error
             ret = cursor.fetchone()
@@ -71,7 +70,7 @@ def post_create():
                level = ret[1] + 1
     else: # else find post with max path
         sql = ("SELECT MAX(path) FROM post where parent_id IS NULL")
-        is_error = execute_query(sql, None, conn, cursor)
+        is_error = execute_query(sql, None, cursor)
         if is_error:
             return is_error
         ret = cursor.fetchone()
@@ -85,25 +84,25 @@ def post_create():
     data = [message, forum_short_name, date, is_approved, is_deleted, is_edited, is_highlighted, is_spam,
             parent_id, path, level, user_email, thread_id]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
 
     sql = ("select LAST_INSERT_ID() as post_id;")
-    is_error = execute_query(sql, None, conn, cursor)
+    is_error = execute_query(sql, None, cursor)
     if is_error:
         return is_error
 
     ret = cursor.fetchone()
     post_id = ret[0] 
 
-    close_connection(conn, cursor)
+    close_connection(cursor)
 
-    return jsonify({'code': Codes.ok, 'response':
+    return success(
                 {'date': date, 'forum': forum_short_name, 'id': post_id,
                  'isApproved': is_approved, 'isDeleted': is_deleted, 'isEdited': is_edited,
                  'isHighlighted': is_highlighted, 'isSpam': is_spam, 'message': message,
-                 'parent': parent_id, 'thread': thread_id, 'user': user_email}})
+                 'parent': parent_id, 'thread': thread_id, 'user': user_email})
 
 
 @post.route('/details/', methods=['GET'])
@@ -134,18 +133,7 @@ def post_details():
 
 @post.route('/list/', methods=['GET'])
 def post_list():
-    # requried
-    thread_id = request.args.get('thread')
-    forum = request.args.get('forum')
-    
-    # optional
-    since = request.args.get('since')
-    limit = request.args.get('limit')
-    order = request.args.get('order')
-    sort = request.args.get('sort')
-
-    return get_list_posts({"thread_id": thread_id, "forum": forum, "since": since,
-        "limit": limit, "order": order, "sort": sort})
+    return get_list_posts(build_dict_params(request, ['thread', 'forum', 'since', 'limit', 'order', 'sort']))
 
 
 @post.route('/remove/', methods=['POST'])
@@ -156,20 +144,19 @@ def post_remove():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
-    conn = mysql.connect()
     cursor = conn.cursor()    
     
     sql = ("UPDATE post SET isDeleted = 1 WHERE id = %s")
     data = [post_id]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
 
     sql = ("SELECT thread_id FROM post WHERE id = %s")
     data = [post_id]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
         
@@ -178,13 +165,13 @@ def post_remove():
     sql = ("UPDATE thread SET posts = posts - 1 WHERE id = %s")
     data = [ret[0]]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error    
 
-    close_connection(conn, cursor)               
+    close_connection(cursor)               
 
-    return jsonify(code = Codes.ok, response = {"post": post_id}) 
+    return success({"post": post_id}) 
 
 
 @post.route('/restore/', methods=['POST'])
@@ -195,20 +182,19 @@ def post_restore():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
-    conn = mysql.connect()
     cursor = conn.cursor()    
     
     sql = ("UPDATE post SET isDeleted = 0 WHERE id = %s")
     data = [post_id]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
 
     sql = ("SELECT thread_id FROM post WHERE id = %s")
     data = [post_id]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
         
@@ -217,13 +203,13 @@ def post_restore():
     sql = ("UPDATE thread SET posts = posts + 1 WHERE id = %s")
     data = [ret[0]]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error    
 
-    close_connection(conn, cursor)               
+    close_connection(cursor)               
 
-    return jsonify(code = Codes.ok, response = {"post": post_id}) 
+    return success({"post": post_id}) 
 
 
 @post.route('/update/', methods=['POST'])
@@ -235,19 +221,18 @@ def post_update():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
-    conn = mysql.connect()
     cursor = conn.cursor()    
     
     sql = ("UPDATE post SET message = %s WHERE id = %s")
     data = [message, post_id]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
 
-    close_connection(conn, cursor)               
+    close_connection(cursor)               
 
-    return jsonify(code = Codes.ok, response = post_info(post_id))
+    return success(post_info(post_id))
 
 
 @post.route('/vote/', methods=['POST'])
@@ -259,7 +244,6 @@ def post_vote():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
-    conn = mysql.connect()
     cursor = conn.cursor()    
     
     sql = sql = "UPDATE post SET"  
@@ -272,10 +256,10 @@ def post_vote():
     sql = sql + " WHERE id = %s"    
     data = [post_id]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
 
-    close_connection(conn, cursor)               
+    close_connection(cursor)               
 
-    return jsonify(code = Codes.ok, response = post_info(post_id))
+    return success(post_info(post_id))

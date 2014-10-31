@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, Flask
-from settings import mysql, Codes
+from settings import *
 from help_functions import *
 from entities_info import *
 from get_list_entities import *
@@ -17,7 +17,6 @@ def user_create():
     except:
         return jsonify(code = Codes.invalid_query, response = 'Not found requried params')        
     
-    conn = mysql.connect()
     cursor = conn.cursor()
 
     # Optional
@@ -27,13 +26,13 @@ def user_create():
     sql = ("SELECT id FROM user WHERE email = %s")
     data = [email]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error 
 
     ret = cursor.fetchone()
     if ret:
-        return error_code(Codes.user_exists, 'This user already exists', conn, cursor) 
+        return error_code(Codes.user_exists, 'This user already exists', cursor) 
     else:
         sql = ("SELECT MAX(id) FROM user")
         cursor.execute(sql)
@@ -49,15 +48,15 @@ def user_create():
                 "VALUES (%s, %s, %s, %s, %s, %s)")
         data = [user_id, username, about, name, email, is_anonymous]
 
-        is_error = execute_query(sql, data, conn, cursor)
+        is_error = execute_query(sql, data, cursor)
         if is_error:
             return is_error
 
-    close_connection(conn, cursor)
+    close_connection(cursor)
 
-    return jsonify({'code': Codes.ok, 'response':
+    return success(
                 {'about': about, 'email': email, 'id': user_id,
-                 'isAnonymous': is_anonymous, 'name': name, 'username': username}})
+                 'isAnonymous': is_anonymous, 'name': name, 'username': username})
 
 
 @user.route('/details/', methods=['GET'])
@@ -87,13 +86,12 @@ def user_follow():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
-    conn = mysql.connect()
     cursor = conn.cursor()    
 
     sql = ("SELECT id FROM followers WHERE user_email = %s AND follower_email = %s")
     data = [followee, follower]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error 
 
@@ -102,49 +100,32 @@ def user_follow():
         sql = ("INSERT INTO followers (user_email, follower_email) VALUES (%s, %s)")
         data = [followee, follower]
 
-        is_error = execute_query(sql, data, conn, cursor)
+        is_error = execute_query(sql, data, cursor)
         if is_error:
             return is_error
 
-    close_connection(conn, cursor)               
+    close_connection(cursor)               
 
-    return jsonify(code = Codes.ok, response = user_info(follower))    
+    return success(user_info(follower))    
 
 
 @user.route('/listFollowers/', methods=['GET'])
 def user_listFollowers():
-    # Requried
-    email = request.args.get('user')
-    if email is None:
-        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')       
-    # Optional
-    limit = request.args.get('limit')
-    order = request.args.get('order')
-    since_id = request.args.get('since_id')
+    params = build_dict_params(request, ['user', 'since_id', 'limit', 'order'])
 
-    sql = ("SELECT follower_email FROM followers"
+    params["sql"] = ("SELECT follower_email FROM followers"
         " JOIN user ON followers.follower_email = user.email AND user_email = %s")
     
-    return get_list_users({"sql": sql, "email": email, "limit": limit, 
-        "order": order, "since_id": since_id}) 
-
+    return get_list_users(params)
 
 @user.route('/listFollowing/', methods=['GET'])
 def user_listFollowing():
-    # Requried
-    email = request.args.get('user')
-    if email is None:
-        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')       
-    # Optional
-    limit = request.args.get('limit')
-    order = request.args.get('order')
-    since_id = request.args.get('since_id')
+    params = build_dict_params(request, ['user', 'since_id', 'limit', 'order'])
 
-    sql = ("SELECT user_email FROM followers"
+    params["sql"] = ("SELECT user_email FROM followers"
             " JOIN user ON followers.user_email = user.email AND follower_email = %s")
    
-    return get_list_users({"sql": sql, "email": email, "limit": limit, 
-        "order": order, "since_id": since_id})
+    return get_list_users(params)
 
 
 @user.route('/unfollow/', methods=['POST'])
@@ -156,19 +137,18 @@ def user_unfollow():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
-    conn = mysql.connect()
     cursor = conn.cursor()    
     
     sql = ("DELETE FROM followers WHERE user_email = %s AND follower_email = %s")
     data = [followee, follower]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
 
-    close_connection(conn, cursor)               
+    close_connection(cursor)               
 
-    return jsonify(code = Codes.ok, response = user_info(follower))
+    return success(user_info(follower))
 
 
 @user.route('/updateProfile/', methods=['POST'])
@@ -181,31 +161,20 @@ def user_updateProfile():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
-    conn = mysql.connect()
     cursor = conn.cursor()    
     
     sql = ("UPDATE user SET name = %s, about = %s WHERE email = %s")
     data = [name, about, email]
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
 
-    close_connection(conn, cursor)               
+    close_connection(cursor)               
 
-    return jsonify(code = Codes.ok, response = user_info(email))   
+    return success(user_info(email))   
 
 
 @user.route('/listPosts/', methods=['GET'])
 def user_list_posts():
-    # requried
-    user_email = request.args.get('user')
-    
-    # optional
-    since = request.args.get('since')
-    limit = request.args.get('limit')
-    order = request.args.get('order')
-    sort = request.args.get('sort')
-
-    return get_list_posts({"user_email": user_email, "since": since,
-        "limit": limit, "order": order, "sort": sort})
+    return get_list_posts(build_dict_params(request, ['user', 'since', 'limit', 'order', 'sort']))

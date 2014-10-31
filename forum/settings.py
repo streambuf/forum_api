@@ -9,6 +9,8 @@ app.config['MYSQL_DATABASE_DB'] = 'forum_db'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
 
+conn = mysql.connect()
+
 class Codes:
 	ok = 0
 	not_found = 1

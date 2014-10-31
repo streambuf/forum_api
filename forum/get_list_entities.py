@@ -1,19 +1,18 @@
 from flask import jsonify, request
-from settings import mysql, Codes
+from settings import *
 from help_functions import *
 from entities_info import *
 from datetime import datetime
 
 def get_list_threads(args):
-    conn = mysql.connect()
     cursor = conn.cursor()
 
     sql = ("SELECT date, dislikes, forum_id, isClosed, isDeleted, likes,"
         " message, points, posts, slug, title, user_email, forum_sname, id FROM thread WHERE")
     
-    if args.get('user_email'):
+    if args.get('user'):
         sql = sql + " user_email = %s"
-        data = [args['user_email']]
+        data = [args['user']]
     elif args.get('forum'):
         sql = sql + " forum_sname = %s"
         data = [args['forum']]
@@ -31,7 +30,7 @@ def get_list_threads(args):
         sql = sql + " LIMIT %s"
         data.append(int(args['limit']))    
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
 
@@ -51,13 +50,12 @@ def get_list_threads(args):
         'isClosed': bool(ret[3]), 'isDeleted': bool(ret[4]), 'likes': ret[5], 'message': ret[6],
         'points': ret[7], 'posts': ret[8], 'slug': ret[9], 'title': ret[10], 'user': user})
 
-    close_connection(conn, cursor)
+    close_connection(cursor)
           
-    return jsonify(code = Codes.ok, response = array)
+    return success(array)
 
 
 def get_list_posts(args):
-    conn = mysql.connect()
     cursor = conn.cursor()
 
     fields = ("date, dislikes, forum, isApproved, isDeleted, isEdited,"
@@ -66,15 +64,15 @@ def get_list_posts(args):
 
     sql = "SELECT " + fields + " FROM post WHERE"
 
-    if args.get('thread_id'):
+    if args.get('thread'):
         sql = sql + " thread_id = %s"
-        data = [args['thread_id']]
+        data = [args['thread']]
     elif args.get('forum'):
         sql = sql + " forum = %s"
         data = [args['forum']]
-    elif args.get('user_email'):
+    elif args.get('user'):
         sql = sql + " user_email = %s"
-        data = [args['user_email']]    
+        data = [args['user']]    
     else:    
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
@@ -106,7 +104,7 @@ def get_list_posts(args):
         sql = sql + " LIMIT %s"
         data.append(int(args['limit']))    
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
 
@@ -124,7 +122,7 @@ def get_list_posts(args):
 
             sql = "SELECT " + fields + " FROM post WHERE path LIKE %s ORDER BY path"
             data = [path + '%']
-            is_error = execute_query(sql, data, conn, cursor)
+            is_error = execute_query(sql, data, cursor)
             
             if is_error:
                 return is_error
@@ -176,18 +174,17 @@ def get_list_posts(args):
         else:
             resp.append(post)
 
-    close_connection(conn, cursor)
+    close_connection(cursor)
           
-    return jsonify(code = Codes.ok, response = resp)    
+    return success(resp)    
 
 
 def get_list_users(args):
-    conn = mysql.connect()
     cursor = conn.cursor()
 
     sql = args.get('sql')
 
-    data = [args.get('email')]
+    data = [args.get('user')]
     if args.get('since_id'):
         sql = sql + " AND user.id >= %s"
         data.append(args.get('since_id'))
@@ -199,7 +196,7 @@ def get_list_users(args):
         sql = sql + " LIMIT %s"
         data.append(int(args.get('limit')))    
 
-    is_error = execute_query(sql, data, conn, cursor)
+    is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
 
@@ -209,7 +206,7 @@ def get_list_users(args):
     for ret in rets:
         array.append(user_info(ret[0]))
 
-    close_connection(conn, cursor)
+    close_connection(cursor)
 
-    return jsonify(code = Codes.ok, response = array)
+    return success(array)
 

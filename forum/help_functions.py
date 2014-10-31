@@ -1,25 +1,27 @@
 from flask import jsonify
-from settings import mysql, Codes
+from settings import *
 
-def execute_query(sql, data, conn, cursor):
+def execute_query(sql, data, cursor):
     try:
         cursor.execute(sql, data)
         conn.commit()
     except:
         conn.rollback()
-        error_info = error_code(Codes.unknown_error, 'execute exception for:' + sql, conn, cursor)
+        error_info = error_code(Codes.unknown_error, 'execute exception for:' + sql, cursor)
         return error_info
     return None    
 
 
-def error_code(code, response, conn, cursor):
-    close_connection(conn, cursor)
+def error_code(code, response, cursor):
+    close_connection(cursor)
     return jsonify(code = code, response = response)
 
+def success(response):
+    return jsonify(code = Codes.ok, response = response)    
 
-def close_connection(conn, cursor):
+
+def close_connection(cursor):
     cursor.close()
-    conn.close()
 
 
 def get_array(cursor):
@@ -29,6 +31,11 @@ def get_array(cursor):
         array.append(row[0])
     return array
 
+def build_dict_params(request, array):
+    dict = {}
+    for a in array:
+        dict[a] = request.args.get(a)
+    return dict    
 
 def is_number(str):
     try:
