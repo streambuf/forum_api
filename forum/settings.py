@@ -1,15 +1,10 @@
 from flask import Flask
 from flaskext.mysql import MySQL
+import mysql.connector
 
-mysql = MySQL()
-app = Flask(__name__)
-app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'drovosek'
-app.config['MYSQL_DATABASE_DB'] = 'forum_db'
-app.config['MYSQL_DATABASE_HOST'] = 'localhost'
-mysql.init_app(app)
 
-conn = mysql.connect()
+conn_pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="pool",
+		pool_size=10, autocommit=True, user='root',password='drovosek',host='localhost',database='forum_db')
 
 class Codes:
 	ok = 0

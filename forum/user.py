@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, Flask
+from flask import Blueprint, jsonify, request, Flask, g
 from settings import *
 from help_functions import *
 from entities_info import *
@@ -17,6 +17,7 @@ def user_create():
     except:
         return jsonify(code = Codes.invalid_query, response = 'Not found requried params')        
     
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()
 
     # Optional
@@ -26,17 +27,16 @@ def user_create():
     sql = ("SELECT id FROM user WHERE email = %s")
     data = [email]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error 
 
     ret = cursor.fetchone()
     if ret:
-        return error_code(Codes.user_exists, 'This user already exists', cursor) 
+        return error_code(Codes.user_exists, 'This user already exists', conn, cursor) 
     else:
         sql = ("SELECT MAX(id) FROM user")
         cursor.execute(sql)
-        conn.commit()
         ret = cursor.fetchone()
         # create id for user        
         if ret[0] is None:
@@ -48,11 +48,11 @@ def user_create():
                 "VALUES (%s, %s, %s, %s, %s, %s)")
         data = [user_id, username, about, name, email, is_anonymous]
 
-        is_error = execute_query(sql, data, cursor)
+        is_error = execute_query(sql, data, conn, cursor)
         if is_error:
             return is_error
 
-    close_connection(cursor)
+    close_connection(cursor, conn)
 
     return success(
                 {'about': about, 'email': email, 'id': user_id,
@@ -86,12 +86,13 @@ def user_follow():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
 
     sql = ("SELECT id FROM followers WHERE user_email = %s AND follower_email = %s")
     data = [followee, follower]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error 
 
@@ -100,11 +101,11 @@ def user_follow():
         sql = ("INSERT INTO followers (user_email, follower_email) VALUES (%s, %s)")
         data = [followee, follower]
 
-        is_error = execute_query(sql, data, cursor)
+        is_error = execute_query(sql, data, conn, cursor)
         if is_error:
             return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success(user_info(follower))    
 
@@ -137,16 +138,17 @@ def user_unfollow():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("DELETE FROM followers WHERE user_email = %s AND follower_email = %s")
     data = [followee, follower]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success(user_info(follower))
 
@@ -161,16 +163,17 @@ def user_updateProfile():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("UPDATE user SET name = %s, about = %s WHERE email = %s")
     data = [name, about, email]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success(user_info(email))   
 

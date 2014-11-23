@@ -1,10 +1,11 @@
-from flask import jsonify, request
+from flask import jsonify, request, g
 from settings import *
 from help_functions import *
 from entities_info import *
 from datetime import datetime
 
 def get_list_threads(args):
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()
 
     sql = ("SELECT date, dislikes, forum_id, isClosed, isDeleted, likes,"
@@ -30,7 +31,7 @@ def get_list_threads(args):
         sql = sql + " LIMIT %s"
         data.append(int(args['limit']))    
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
@@ -50,12 +51,13 @@ def get_list_threads(args):
         'isClosed': bool(ret[3]), 'isDeleted': bool(ret[4]), 'likes': ret[5], 'message': ret[6],
         'points': ret[7], 'posts': ret[8], 'slug': ret[9], 'title': ret[10], 'user': user})
 
-    close_connection(cursor)
+    close_connection(cursor, conn)
           
     return success(array)
 
 
 def get_list_posts(args):
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()
 
     fields = ("date, dislikes, forum, isApproved, isDeleted, isEdited,"
@@ -89,7 +91,7 @@ def get_list_posts(args):
         sql = sql + " LIMIT %s"
         data.append(int(args['limit']))    
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
@@ -118,12 +120,13 @@ def get_list_posts(args):
         
         resp.append(post)
 
-    close_connection(cursor)
+    close_connection(cursor, conn)
           
     return success(resp)    
 
 
 def get_list_users(args):
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()
 
     sql = args.get('sql')
@@ -140,7 +143,7 @@ def get_list_users(args):
         sql = sql + " LIMIT %s"
         data.append(int(args.get('limit')))    
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
@@ -150,7 +153,7 @@ def get_list_users(args):
     for ret in rets:
         array.append(user_info(ret[0]))
 
-    close_connection(cursor)
+    close_connection(cursor, conn)
 
     return success(array)
 

@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, Flask
+from flask import Blueprint, jsonify, request, Flask, g
 from settings import *
 from help_functions import *
 from entities_info import *
@@ -13,16 +13,17 @@ def forum_create():
         short_name = request.json['short_name']
         user_email = request.json['user']
     except:
-        return error_code(Codes.invalid_query, "Not found requried params", cursor)    
+        return error_code(Codes.invalid_query, "Not found requried params", conn, cursor)    
 
     
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()
         
     # check on unique
     sql = ("SELECT id, user_email FROM forum WHERE short_name = %s")
     data = [short_name]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error 
 
@@ -37,30 +38,30 @@ def forum_create():
         sql = ("SELECT email FROM user WHERE email = %s")
         data = [user_email]
 
-        is_error = execute_query(sql, data, cursor)
+        is_error = execute_query(sql, data, conn, cursor)
         if is_error:
             return is_error 
 
         ret = cursor.fetchone()
         if ret is None:
-            return error_code(Codes.not_found, 'user_email not found', cursor)
+            return error_code(Codes.not_found, 'user_email not found', conn, cursor)
 
         sql = ("INSERT INTO forum (name, short_name, user_email) VALUES (%s, %s, %s)")
         data = [name, short_name, user_email]
 
-        is_error = execute_query(sql, data, cursor)
+        is_error = execute_query(sql, data, conn, cursor)
         if is_error:
             return is_error
 
         sql = ("select LAST_INSERT_ID() as forum_id;")
-        is_error = execute_query(sql, None, cursor)
+        is_error = execute_query(sql, None, conn, cursor)
         if is_error:
             return is_error
 
         ret = cursor.fetchone()
         forum_id = ret[0] 
 
-    close_connection(cursor)
+    close_connection(cursor, conn)
 
     return success({'id': forum_id, 'name': name, 'short_name': short_name, 'user': user_email })
 #-------------------------------------------------------------------------------------------------

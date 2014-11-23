@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, Flask
+from flask import Blueprint, jsonify, request, Flask, g
 from settings import *
 from help_functions import *
 from entities_info import *
@@ -16,8 +16,9 @@ def post_create():
         user_email = request.json['user']
         forum_short_name = request.json['forum']
     except:
-        return error_code(Codes.invalid_query, "Not found requried params", cursor)
+        return error_code(Codes.invalid_query, "Not found requried params", conn, cursor)
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()            
     
     # Optional
@@ -32,7 +33,7 @@ def post_create():
     sql = ("SELECT id FROM forum WHERE short_name = %s")
     data = [forum_short_name]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error 
 
@@ -40,7 +41,7 @@ def post_create():
     if ret:
         forum_id = ret[0]
     else:
-        return error_code(Codes.not_found, 'forum not found', cursor)   
+        return error_code(Codes.not_found, 'forum not found', conn, cursor)   
 
     sql = ("INSERT INTO post (message, forum, date, isApproved, isDeleted, isEdited, isHighlighted,"
         "isSpam, parent_id, user_email, thread_id) VALUES"
@@ -48,19 +49,19 @@ def post_create():
     data = [message, forum_short_name, date, is_approved, is_deleted, is_edited, is_highlighted, is_spam,
             parent_id, user_email, thread_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
     sql = ("select LAST_INSERT_ID() as post_id;")
-    is_error = execute_query(sql, None, cursor)
+    is_error = execute_query(sql, None, conn, cursor)
     if is_error:
         return is_error
 
     ret = cursor.fetchone()
     post_id = ret[0] 
 
-    close_connection(cursor)
+    close_connection(cursor, conn)
 
     return success(
                 {'date': date, 'forum': forum_short_name, 'id': post_id,
@@ -108,19 +109,20 @@ def post_remove():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("UPDATE post SET isDeleted = 1 WHERE id = %s")
     data = [post_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
     sql = ("SELECT thread_id FROM post WHERE id = %s")
     data = [post_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
         
@@ -129,11 +131,11 @@ def post_remove():
     sql = ("UPDATE thread SET posts = posts - 1 WHERE id = %s")
     data = [ret[0]]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error    
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success({"post": post_id}) 
 
@@ -146,19 +148,20 @@ def post_restore():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("UPDATE post SET isDeleted = 0 WHERE id = %s")
     data = [post_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
     sql = ("SELECT thread_id FROM post WHERE id = %s")
     data = [post_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
         
@@ -167,11 +170,11 @@ def post_restore():
     sql = ("UPDATE thread SET posts = posts + 1 WHERE id = %s")
     data = [ret[0]]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error    
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success({"post": post_id}) 
 
@@ -185,16 +188,17 @@ def post_update():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("UPDATE post SET message = %s WHERE id = %s")
     data = [message, post_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success(post_info(post_id))
 
@@ -208,6 +212,7 @@ def post_vote():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = sql = "UPDATE post SET"  
@@ -220,10 +225,10 @@ def post_vote():
     sql = sql + " WHERE id = %s"    
     data = [post_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success(post_info(post_id))

@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, Flask
+from flask import Blueprint, jsonify, request, Flask, g
 from settings import *
 from help_functions import *
 from entities_info import *
@@ -18,8 +18,9 @@ def thread_create():
         user_email = request.json['user']
         forum_short_name = request.json['forum']
     except:
-        return error_code(Codes.invalid_query, "Not found requried params", cursor)
+        return error_code(Codes.invalid_query, "Not found requried params", conn, cursor)
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()
 
     # Optional
@@ -29,7 +30,7 @@ def thread_create():
     sql = ("SELECT id FROM forum WHERE short_name = %s")
     data = [forum_short_name]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error 
 
@@ -37,25 +38,25 @@ def thread_create():
     if ret:
         forum_id = ret[0]
     else:
-        return error_code(Codes.not_found, 'forum not found', cursor)        
+        return error_code(Codes.not_found, 'forum not found', conn, cursor)        
 
     sql = ("INSERT INTO thread (title, message, slug, date, user_email, forum_id,"
         "isDeleted, isClosed, forum_sname) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)")
     data = [title, message, slug, date, user_email, forum_id, is_deleted, is_closed, forum_short_name]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
     sql = ("select LAST_INSERT_ID() as post_id;")
-    is_error = execute_query(sql, None, cursor)
+    is_error = execute_query(sql, None, conn, cursor)
     if is_error:
         return is_error
 
     ret = cursor.fetchone()
     thread_id = ret[0] 
 
-    close_connection(cursor)
+    close_connection(cursor, conn)
 
     return success(
                 {'date': date, 'forum': forum_short_name, 'id': thread_id,
@@ -102,16 +103,17 @@ def thread_close():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("UPDATE thread SET isClosed = 1 WHERE id = %s")
     data = [thread_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success({"thread": thread_id})
 
@@ -124,16 +126,17 @@ def thread_open():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("UPDATE thread SET isClosed = 0 WHERE id = %s")
     data = [thread_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success({"thread": thread_id})
 
@@ -146,16 +149,17 @@ def thread_remove():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("UPDATE thread SET isDeleted = 1 WHERE id = %s")
     data = [thread_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success({"thread": thread_id})
 
@@ -168,16 +172,17 @@ def thread_restore():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("UPDATE thread SET isDeleted = 0 WHERE id = %s")
     data = [thread_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success({"thread": thread_id})
 
@@ -191,16 +196,17 @@ def thread_subscribe():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("INSERT INTO subscriptions (user_email, thread_id) VALUES (%s, %s)")
     data = [email, thread_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success({"thread": thread_id, "user": email})
 
@@ -214,16 +220,17 @@ def thread_unsubscribe():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("DELETE FROM subscriptions WHERE user_email = %s AND thread_id = %s")
     data = [email, thread_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success({"thread": thread_id, "user": email})    
 
@@ -238,16 +245,17 @@ def thread_update():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
     sql = ("UPDATE thread SET message = %s, slug = %s WHERE id = %s")
     data = [message, slug, thread_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success(thread_info(thread_id))
 
@@ -261,6 +269,7 @@ def thread_vote():
     except:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
 
+    conn = conn_pool.get_connection()
     cursor = conn.cursor()  
 
     sql = sql = "UPDATE thread SET"  
@@ -273,11 +282,11 @@ def thread_vote():
     sql = sql + " WHERE id = %s"    
     data = [thread_id]
 
-    is_error = execute_query(sql, data, cursor)
+    is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
-    close_connection(cursor)               
+    close_connection(cursor, conn)               
 
     return success(thread_info(thread_id))
 
