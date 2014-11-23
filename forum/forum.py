@@ -45,8 +45,8 @@ def forum_create():
         if ret is None:
             return error_code(Codes.not_found, 'user_email not found', cursor)
 
-        sql = ("INSERT INTO forum (name, short_name, date, user_email) VALUES (%s, %s, %s, %s)")
-        data = [name, short_name, datetime.now(), user_email]
+        sql = ("INSERT INTO forum (name, short_name, user_email) VALUES (%s, %s, %s)")
+        data = [name, short_name, user_email]
 
         is_error = execute_query(sql, data, cursor)
         if is_error:

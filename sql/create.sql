@@ -8,15 +8,15 @@ CREATE TABLE user (
     username VARCHAR(25),
     name VARCHAR(25),
     about TEXT,
-    isAnonymous TINYINT(1),
-    INDEX iname (name)
+    isAnonymous TINYINT(1)
 ) ENGINE=InnoDB;
+
+ALTER TABLE user ADD INDEX c_email_id (email, id);
 
 CREATE TABLE forum (
     id INT(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
     name VARCHAR(35) NOT NULL UNIQUE,
     short_name VARCHAR(35) NOT NULL UNIQUE,
-    date DATETIME NOT NULL,
     user_email VARCHAR(25) NOT NULL,
     CONSTRAINT FOREIGN KEY (user_email) REFERENCES user (email),
     INDEX ishort_name (short_name),
@@ -44,6 +44,9 @@ CREATE TABLE thread (
     INDEX iforum_sname (forum_sname)
 ) ENGINE=InnoDB;
 
+ALTER TABLE thread ADD INDEX c_user_date (user_email, date);
+ALTER TABLE thread ADD INDEX c_forum_date (forum_sname, date);
+
 CREATE TABLE post (
     id INT(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
     message TEXT NOT NULL,
@@ -57,17 +60,18 @@ CREATE TABLE post (
     likes SMALLINT DEFAULT 0,
     dislikes SMALLINT DEFAULT 0,
     points SMALLINT DEFAULT 0,
-    path VARCHAR(255) NOT NULL,
-    level INT(11) NOT NULL,
     parent_id INT(11),
     user_email VARCHAR(25) NOT NULL,
     thread_id INT(11) NOT NULL,
     CONSTRAINT FOREIGN KEY (user_email) REFERENCES user (email),
     CONSTRAINT FOREIGN KEY (thread_id) REFERENCES thread (id),
-    INDEX ipath (path),
-    INDEX iforum (forum),
-    INDEX idate (date)
+    INDEX iforum (forum)
 ) ENGINE=InnoDB;
+
+ALTER TABLE post ADD INDEX c_forum_user (forum, user_email);
+ALTER TABLE post ADD INDEX c_threadid_date (thread_id, date);
+ALTER TABLE post ADD INDEX c_user_date (user_email, date);
+ALTER TABLE post ADD INDEX c_forum_date (forum, date);
 
 CREATE TABLE subscriptions (
     id INT(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
@@ -77,6 +81,8 @@ CREATE TABLE subscriptions (
     CONSTRAINT FOREIGN KEY (thread_id) REFERENCES thread (id)
 ) ENGINE=InnoDB;
 
+ALTER TABLE subscriptions ADD INDEX c_user_thread(user_email, thread_id);
+
 CREATE TABLE followers (
     id INT(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
     user_email VARCHAR(25) NOT NULL,
@@ -85,6 +91,8 @@ CREATE TABLE followers (
     CONSTRAINT FOREIGN KEY (follower_email) REFERENCES user (email)
 ) ENGINE=InnoDB;
 
+ALTER TABLE followers ADD INDEX c_user_follower (user_email, follower_email);
+ALTER TABLE followers ADD INDEX c_follower_user (follower_email, user_email);
 
 DELIMITER $$
 

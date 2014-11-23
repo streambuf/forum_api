@@ -42,47 +42,11 @@ def post_create():
     else:
         return error_code(Codes.not_found, 'forum not found', cursor)   
 
-    # create path
-    num_digits = 6 # max nesting: 252 / 6 = 42  
-    path = str(1).rjust(num_digits, '0')
-    level = 0
-    if parent_id:
-        # find max child
-        sql = ("SELECT MAX(path), level FROM post WHERE parent_id = %s")
-        data = [parent_id]
-        is_error = execute_query(sql, data, cursor)
-        if is_error:
-            return is_error
-        ret = cursor.fetchone()
-        if ret and ret[0]:
-           array = ret[0].split('.')
-           path = ret[0][:-7] + '.' + str(int(array[-1]) + 1).rjust(num_digits, '0')
-           level = ret[1]
-        else: # else find parent    
-            sql = ("SELECT path, level FROM post WHERE id = %s")
-            data = [parent_id]
-            is_error = execute_query(sql, data, cursor)
-            if is_error:
-                return is_error
-            ret = cursor.fetchone()
-            if ret and ret[0]:
-               path = ret[0] + '.' + str(1).rjust(num_digits, '0')
-               level = ret[1] + 1
-    else: # else find post with max path
-        sql = ("SELECT MAX(path) FROM post where parent_id IS NULL")
-        is_error = execute_query(sql, None, cursor)
-        if is_error:
-            return is_error
-        ret = cursor.fetchone()
-        if ret and ret[0]:
-           path = str(int(ret[0]) + 1).rjust(num_digits, '0')
-              
-
     sql = ("INSERT INTO post (message, forum, date, isApproved, isDeleted, isEdited, isHighlighted,"
-        "isSpam, parent_id, path, level, user_email, thread_id) VALUES"
-        "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
+        "isSpam, parent_id, user_email, thread_id) VALUES"
+        "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
     data = [message, forum_short_name, date, is_approved, is_deleted, is_edited, is_highlighted, is_spam,
-            parent_id, path, level, user_email, thread_id]
+            parent_id, user_email, thread_id]
 
     is_error = execute_query(sql, data, cursor)
     if is_error:
