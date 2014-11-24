@@ -9,7 +9,7 @@ CREATE TABLE user (
     name VARCHAR(25),
     about TEXT,
     isAnonymous TINYINT(1)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE user ADD INDEX c_email_id (email, id);
 
@@ -21,7 +21,7 @@ CREATE TABLE forum (
     CONSTRAINT FOREIGN KEY (user_email) REFERENCES user (email),
     INDEX ishort_name (short_name),
     INDEX idate (date)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE thread (
     id INT(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
@@ -42,7 +42,7 @@ CREATE TABLE thread (
     CONSTRAINT FOREIGN KEY (forum_id) REFERENCES forum (id),
     INDEX idate (date),
     INDEX iforum_sname (forum_sname)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE thread ADD INDEX c_user_date (user_email, date);
 ALTER TABLE thread ADD INDEX c_forum_date (forum_sname, date);
@@ -66,7 +66,7 @@ CREATE TABLE post (
     CONSTRAINT FOREIGN KEY (user_email) REFERENCES user (email),
     CONSTRAINT FOREIGN KEY (thread_id) REFERENCES thread (id),
     INDEX iforum (forum)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE post ADD INDEX c_forum_user (forum, user_email);
 ALTER TABLE post ADD INDEX c_threadid_date (thread_id, date);
@@ -79,7 +79,7 @@ CREATE TABLE subscriptions (
     thread_id INT(11) NOT NULL,    
     CONSTRAINT FOREIGN KEY (user_email) REFERENCES user (email),
     CONSTRAINT FOREIGN KEY (thread_id) REFERENCES thread (id)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE subscriptions ADD INDEX c_user_thread(user_email, thread_id);
 
@@ -89,7 +89,7 @@ CREATE TABLE followers (
     follower_email VARCHAR(25) NOT NULL, 
     CONSTRAINT FOREIGN KEY (user_email) REFERENCES user (email),
     CONSTRAINT FOREIGN KEY (follower_email) REFERENCES user (email)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE followers ADD INDEX c_user_follower (user_email, follower_email);
 ALTER TABLE followers ADD INDEX c_follower_user (follower_email, user_email);
