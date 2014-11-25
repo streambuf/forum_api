@@ -127,7 +127,10 @@ def post_remove():
     ret = cursor.fetchone()        
 
     sql = ("UPDATE thread SET posts = posts - 1 WHERE id = %s")
-    data = [ret[0]]
+    if ret:
+        data = [ret[0]]
+    else:
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')    
 
     is_error = execute_query(sql, data, cursor)
     if is_error:
@@ -165,7 +168,11 @@ def post_restore():
     ret = cursor.fetchone()        
 
     sql = ("UPDATE thread SET posts = posts + 1 WHERE id = %s")
-    data = [ret[0]]
+    
+    if ret:
+        data = [ret[0]]
+    else:
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')  
 
     is_error = execute_query(sql, data, cursor)
     if is_error:
