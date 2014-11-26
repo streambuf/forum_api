@@ -103,7 +103,7 @@ CREATE TRIGGER count_post BEFORE INSERT ON post
             UPDATE thread SET posts = posts + 1 WHERE id = NEW.thread_id;
         END $$
 
-DROP TRIGGER IF EXISTS thread_deleted$$
+/*DROP TRIGGER IF EXISTS thread_deleted$$
 CREATE TRIGGER thread_deleted BEFORE UPDATE ON thread
     FOR EACH ROW 
         BEGIN
@@ -116,7 +116,7 @@ CREATE TRIGGER thread_deleted BEFORE UPDATE ON thread
             END IF;
         END $$
 
-/*DROP TRIGGER IF EXISTS post_deleted$$
+DROP TRIGGER IF EXISTS post_deleted$$
 CREATE TRIGGER post_deleted BEFORE UPDATE ON post
     FOR EACH ROW 
         BEGIN
@@ -128,5 +128,5 @@ CREATE TRIGGER post_deleted BEFORE UPDATE ON post
                     WHERE id = NEW.thread_id;
                 END IF;
            
-        END $$*/
-DELIMITER ;
+        END $$
+DELIMITER ;*/

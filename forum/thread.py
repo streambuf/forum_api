@@ -155,6 +155,14 @@ def thread_remove():
     if is_error:
         return is_error
 
+    sql = ("UPDATE post SET isDeleted = 1 WHERE thread_id = %s")
+    data = [thread_id]
+
+    is_error = execute_query(sql, data, cursor)
+    if is_error:
+        return is_error    
+
+
     close_connection(cursor)               
 
     return success({"thread": thread_id})
@@ -176,6 +184,13 @@ def thread_restore():
     is_error = execute_query(sql, data, cursor)
     if is_error:
         return is_error
+
+    sql = ("UPDATE post SET isDeleted = 0 WHERE thread_id = %s")
+    data = [thread_id]
+
+    is_error = execute_query(sql, data, cursor)
+    if is_error:
+        return is_error 
 
     close_connection(cursor)               
 
