@@ -15,50 +15,22 @@ def forum_create():
     except:
         return error_code(Codes.invalid_query, "Not found requried params", cursor)    
 
-    
     cursor = conn.cursor()
-        
-    # check on unique
-    sql = ("SELECT id, user_email FROM forum WHERE short_name = %s")
-    data = [short_name]
+
+    sql = ("INSERT INTO forum (name, short_name, user_email) VALUES (%s, %s, %s)")
+    data = [name, short_name, user_email]
 
     is_error = execute_query(sql, data, cursor)
     if is_error:
-        return is_error 
+        return error_code(Codes.not_found, 'user_email not found', cursor)
+
+    sql = ("select LAST_INSERT_ID() as forum_id;")
+    is_error = execute_query(sql, None, cursor)
+    if is_error:
+        return is_error
 
     ret = cursor.fetchone()
-    # if exists
-    if ret:
-        forum_id = ret[0]
-        user_email = ret[1]
-     # else create new forum        
-    else:
-        #check user
-        sql = ("SELECT email FROM user WHERE email = %s")
-        data = [user_email]
-
-        is_error = execute_query(sql, data, cursor)
-        if is_error:
-            return is_error 
-
-        ret = cursor.fetchone()
-        if ret is None:
-            return error_code(Codes.not_found, 'user_email not found', cursor)
-
-        sql = ("INSERT INTO forum (name, short_name, user_email) VALUES (%s, %s, %s)")
-        data = [name, short_name, user_email]
-
-        is_error = execute_query(sql, data, cursor)
-        if is_error:
-            return is_error
-
-        sql = ("select LAST_INSERT_ID() as forum_id;")
-        is_error = execute_query(sql, None, cursor)
-        if is_error:
-            return is_error
-
-        ret = cursor.fetchone()
-        forum_id = ret[0] 
+    forum_id = ret[0] 
 
     close_connection(cursor)
 

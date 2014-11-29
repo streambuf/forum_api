@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import jsonify, g
 from settings import *
 
 def execute_query(sql, data, cursor):
@@ -45,4 +45,14 @@ def is_number(str):
         return False
 
 
+cursor = conn.cursor()
 
+sql = ("SELECT MAX(id) FROM user")
+cursor.execute(sql)
+conn.commit()
+ret = cursor.fetchone()
+# create id for user        
+if ret[0] is None:
+    g.cur_user_id = 1
+else:
+    g.cur_user_id = ret[0] + 1

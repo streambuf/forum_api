@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, Flask
+from flask import Blueprint, jsonify, request, Flask, g
 from settings import *
 from help_functions import *
 from entities_info import *
@@ -22,36 +22,14 @@ def user_create():
     # Optional
     is_anonymous = request.json.get('isAnonymous', False)
 
-    # find user_id
-    sql = ("SELECT id FROM user WHERE email = %s")
-    data = [email]
+    sql = ("INSERT INTO user (id, username, about, name, email, isAnonymous)" 
+            "VALUES (%s, %s, %s, %s, %s, %s)")
+    data = [g.cur_user_id, username, about, name, email, is_anonymous]
 
     is_error = execute_query(sql, data, cursor)
     if is_error:
-        return is_error 
-
-    ret = cursor.fetchone()
-    if ret:
         return error_code(Codes.user_exists, 'This user already exists', cursor) 
-    else:
-        sql = ("SELECT MAX(id) FROM user")
-        cursor.execute(sql)
-        conn.commit()
-        ret = cursor.fetchone()
-        # create id for user        
-        if ret[0] is None:
-            user_id = 1
-        else:
-            user_id = ret[0] + 1        
-          
-        sql = ("INSERT INTO user (id, username, about, name, email, isAnonymous)" 
-                "VALUES (%s, %s, %s, %s, %s, %s)")
-        data = [user_id, username, about, name, email, is_anonymous]
-
-        is_error = execute_query(sql, data, cursor)
-        if is_error:
-            return is_error
-
+    cur_user_id = cur_user_id + 1
     close_connection(cursor)
 
     return success(
@@ -88,21 +66,12 @@ def user_follow():
 
     cursor = conn.cursor()    
 
-    sql = ("SELECT id FROM followers WHERE user_email = %s AND follower_email = %s")
+    sql = ("INSERT INTO followers (user_email, follower_email) VALUES (%s, %s)")
     data = [followee, follower]
 
     is_error = execute_query(sql, data, cursor)
     if is_error:
-        return is_error 
-
-    ret = cursor.fetchone()
-    if ret is None:
-        sql = ("INSERT INTO followers (user_email, follower_email) VALUES (%s, %s)")
-        data = [followee, follower]
-
-        is_error = execute_query(sql, data, cursor)
-        if is_error:
-            return is_error
+        return is_error
 
     close_connection(cursor)               
 
