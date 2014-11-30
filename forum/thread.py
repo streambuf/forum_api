@@ -142,7 +142,7 @@ def thread_remove():
 
     cursor = conn.cursor()    
     
-    sql = ("UPDATE thread SET isDeleted = 1 WHERE id = %s")
+    sql = ("UPDATE thread SET posts=0, isDeleted = 1 WHERE id = %s")
     data = [thread_id]
 
     is_error = execute_query(sql, data, cursor)
@@ -172,8 +172,8 @@ def thread_restore():
 
     cursor = conn.cursor()    
     
-    sql = ("UPDATE thread SET isDeleted = 0 WHERE id = %s")
-    data = [thread_id]
+    sql = ("UPDATE thread SET posts = (SELECT COUNT(*) FROM post where thread_id = %s), isDeleted = 0 WHERE id = %s")
+    data = [thread_id, thread_id]
 
     is_error = execute_query(sql, data, cursor)
     if is_error:
