@@ -21,7 +21,7 @@ def success(response):
 
 def close_connection(cursor, conn):
     cursor.close()
-    conn_pool.add_connection(conn)
+    conn.close()
 
 
 def get_array(cursor):
