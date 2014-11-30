@@ -24,13 +24,7 @@ def forum_create():
     if is_error:
         return error_code(Codes.not_found, 'user_email not found', cursor)
 
-    sql = ("select LAST_INSERT_ID() as forum_id;")
-    is_error = execute_query(sql, None, cursor)
-    if is_error:
-        return is_error
-
-    ret = cursor.fetchone()
-    forum_id = ret[0] 
+    forum_id = cursor.lastrowid 
 
     close_connection(cursor)
 

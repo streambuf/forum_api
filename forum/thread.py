@@ -47,13 +47,7 @@ def thread_create():
     if is_error:
         return is_error
 
-    sql = ("select LAST_INSERT_ID() as post_id;")
-    is_error = execute_query(sql, None, cursor)
-    if is_error:
-        return is_error
-
-    ret = cursor.fetchone()
-    thread_id = ret[0] 
+    thread_id = cursor.lastrowid
 
     close_connection(cursor)
 

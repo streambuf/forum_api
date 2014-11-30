@@ -28,20 +28,6 @@ def post_create():
     is_spam = request.json.get('isSpam', False)
     is_deleted = request.json.get('isDeleted', False)
 
-    # find forum_id
-    sql = ("SELECT id FROM forum WHERE short_name = %s")
-    data = [forum_short_name]
-
-    is_error = execute_query(sql, data, cursor)
-    if is_error:
-        return is_error 
-
-    ret = cursor.fetchone()
-    if ret:
-        forum_id = ret[0]
-    else:
-        return error_code(Codes.not_found, 'forum not found', cursor)   
-
     sql = ("INSERT INTO post (message, forum, date, isApproved, isDeleted, isEdited, isHighlighted,"
         "isSpam, parent_id, user_email, thread_id) VALUES"
         "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
@@ -52,13 +38,7 @@ def post_create():
     if is_error:
         return is_error
 
-    sql = ("select LAST_INSERT_ID() as post_id;")
-    is_error = execute_query(sql, None, cursor)
-    if is_error:
-        return is_error
-
-    ret = cursor.fetchone()
-    post_id = ret[0] 
+    post_id = cursor.lastrowid
 
     close_connection(cursor)
 

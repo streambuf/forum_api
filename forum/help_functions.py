@@ -44,15 +44,3 @@ def is_number(str):
     except ValueError:
         return False
 
-
-cursor = conn.cursor()
-
-sql = ("SELECT MAX(id) FROM user")
-cursor.execute(sql)
-conn.commit()
-ret = cursor.fetchone()
-# create id for user        
-if ret[0] is None:
-    g.cur_user_id = 1
-else:
-    g.cur_user_id = ret[0] + 1

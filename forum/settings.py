@@ -18,3 +18,6 @@ class Codes:
 	incorrect_query = 3
 	unknown_error = 4
 	user_exists = 5
+
+
+	

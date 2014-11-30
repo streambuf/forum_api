@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, render_template
+from flask import Flask, render_template, g
 from forum.forum import forum
 from forum.thread import thread
 from forum.post import post
@@ -14,6 +14,7 @@ app.register_blueprint(thread)
 app.register_blueprint(post)
 app.register_blueprint(user)
 app.register_blueprint(other)
+
 
 @app.route('/')
 def hello():

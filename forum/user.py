@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, Flask, g
+from flask import Blueprint, jsonify, request, Flask
 from settings import *
 from help_functions import *
 from entities_info import *
@@ -20,16 +20,18 @@ def user_create():
     cursor = conn.cursor()
 
     # Optional
-    is_anonymous = request.json.get('isAnonymous', False)
-
-    sql = ("INSERT INTO user (id, username, about, name, email, isAnonymous)" 
-            "VALUES (%s, %s, %s, %s, %s, %s)")
-    data = [g.cur_user_id, username, about, name, email, is_anonymous]
+    is_anonymous = request.json.get('isAnonymous', False)       
+      
+    sql = ("INSERT INTO user (username, about, name, email, isAnonymous)" 
+            "VALUES (%s, %s, %s, %s, %s)")
+    data = [username, about, name, email, is_anonymous]
 
     is_error = execute_query(sql, data, cursor)
     if is_error:
         return error_code(Codes.user_exists, 'This user already exists', cursor) 
-    cur_user_id = cur_user_id + 1
+
+    user_id = cursor.lastrowid
+        
     close_connection(cursor)
 
     return success(
