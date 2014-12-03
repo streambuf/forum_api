@@ -71,14 +71,16 @@ def thread_details():
         if rel == 'thread':
             return jsonify(code = Codes.incorrect_query, response = 'Error related' )
         options[rel] = True   
+    try:
+        resp = {}
+        resp['code'] = Codes.ok
+        resp['response'] = thread_info(thread_id, options) 
 
-    resp = {}
-    resp['code'] = Codes.ok
-    resp['response'] = thread_info(thread_id, options) 
-
-    if resp['response'] and resp['response'].get('code'):
-        resp['code'] = resp['response'].get('code')
-        resp['response'] = resp['response'].get('response')    
+        if resp['response'] and resp['response'].get('code'):
+            resp['code'] = resp['response'].get('code')
+            resp['response'] = resp['response'].get('response') 
+    except:         
+        return  jsonify(code = Codes.unknown_error, response = 'Unknown error')           
 
     return jsonify(resp)
 

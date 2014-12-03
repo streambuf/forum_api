@@ -49,10 +49,12 @@ def user_details():
     resp = {}
     resp['code'] = Codes.ok
     resp['response'] = user_info(email)
-
-    if resp['response'] and resp['response'].get('code'):
-        resp['code'] = resp['response'].get('code')
-        resp['response'] = resp['response'].get('response')         
+    try: 
+        if resp['response'] and resp['response'].get('code'):
+            resp['code'] = resp['response'].get('code')
+            resp['response'] = resp['response'].get('response') 
+    except:         
+        return  jsonify(code = Codes.unknown_error, response = 'Unknown error')                
 
     return jsonify(resp)
 

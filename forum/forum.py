@@ -39,19 +39,21 @@ def forum_details():
 
     if forum is None:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
-      
-    resp = {}
-    resp['code'] = Codes.ok
-    resp['response'] = forum_info(forum)
+    
+    try:  
+        resp = {}
+        resp['code'] = Codes.ok
+        resp['response'] = forum_info(forum)
 
-    if resp['response'] and resp['response'].get('code'):
-        resp['code'] = resp['response'].get('code')
-        resp['response'] = resp['response'].get('response')
-           
-    # user info
-    elif related and related[0] == 'user':
-        resp['response']['user'] = user_info(resp['response']['user']) 
-
+        if resp['response'] and resp['response'].get('code'):
+            resp['code'] = resp['response'].get('code')
+            resp['response'] = resp['response'].get('response')
+               
+        # user info
+        elif related and related[0] == 'user':
+            resp['response']['user'] = user_info(resp['response']['user']) 
+    except:         
+        return  jsonify(code = Codes.unknown_error, response = 'Unknown error')
     return jsonify(resp)
 #-------------------------------------------------------------------------------------------------
 

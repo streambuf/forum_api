@@ -16,10 +16,9 @@ def post_create():
         user_email = request.json['user']
         forum_short_name = request.json['forum']
     except:
-        return error_code(Codes.invalid_query, "Not found requried params", cursor)
+        return jsonify(code = Codes.invalid_query, response = "Not found requried params")
 
-    cursor = conn.cursor()            
-    
+    cursor = conn.cursor()     
     # Optional
     parent_id = request.json.get('parent')
     is_approved = request.json.get('isApproved', False)
@@ -61,16 +60,17 @@ def post_details():
     options = {}
     for rel in related:
        options[rel] = True      
+    try:   
+        resp = {}
+        resp['code'] = Codes.ok
+        resp['response'] = post_info(post_id, options)
 
-    resp = {}
-    resp['code'] = Codes.ok
-    resp['response'] = post_info(post_id, options)
+        if resp['response'] and resp['response'].get('code'):
+            resp['code'] = resp['response'].get('code')
+            resp['response'] = resp['response'].get('response')
 
-    if resp['response'] and resp['response'].get('code'):
-        resp['code'] = resp['response'].get('code')
-        resp['response'] = resp['response'].get('response')
-
-    print resp    
+    except:         
+        return  jsonify(code = Codes.unknown_error, response = 'Unknown error') 
         
     return jsonify(resp)
 
