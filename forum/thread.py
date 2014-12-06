@@ -48,13 +48,8 @@ def thread_create():
     if is_error:
         return is_error
 
-    sql = ("select LAST_INSERT_ID() as post_id;")
-    is_error = execute_query(sql, None, conn, cursor)
-    if is_error:
-        return is_error
 
-    ret = cursor.fetchone()
-    thread_id = ret[0] 
+    thread_id = cursor.lastrowid
 
     close_connection(cursor, conn)
 
@@ -78,14 +73,16 @@ def thread_details():
         if rel == 'thread':
             return jsonify(code = Codes.incorrect_query, response = 'Error related' )
         options[rel] = True   
+    try:
+        resp = {}
+        resp['code'] = Codes.ok
+        resp['response'] = thread_info(thread_id, options) 
 
-    resp = {}
-    resp['code'] = Codes.ok
-    resp['response'] = thread_info(thread_id, options) 
-
-    if resp['response'] and resp['response'].get('code'):
-        resp['code'] = resp['response'].get('code')
-        resp['response'] = resp['response'].get('response')    
+        if resp['response'] and resp['response'].get('code'):
+            resp['code'] = resp['response'].get('code')
+            resp['response'] = resp['response'].get('response') 
+    except:         
+        return  jsonify(code = Codes.unknown_error, response = 'Unknown error')           
 
     return jsonify(resp)
 
@@ -152,14 +149,24 @@ def thread_remove():
     conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
-    sql = ("UPDATE thread SET isDeleted = 1 WHERE id = %s")
+    sql = ("UPDATE thread SET posts=0, isDeleted = 1 WHERE id = %s")
     data = [thread_id]
 
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
+
+    sql = ("UPDATE post SET isDeleted = 1 WHERE thread_id = %s")
+    data = [thread_id]
+
+    is_error = execute_query(sql, data, conn, cursor)
+    if is_error:
+        return is_error    
+
+
     close_connection(cursor, conn)               
+
 
     return success({"thread": thread_id})
 
@@ -175,14 +182,23 @@ def thread_restore():
     conn = conn_pool.get_connection()
     cursor = conn.cursor()    
     
-    sql = ("UPDATE thread SET isDeleted = 0 WHERE id = %s")
-    data = [thread_id]
+    sql = ("UPDATE thread SET posts = (SELECT COUNT(*) FROM post where thread_id = %s), isDeleted = 0 WHERE id = %s")
+    data = [thread_id, thread_id]
 
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
         return is_error
 
+
+    sql = ("UPDATE post SET isDeleted = 0 WHERE thread_id = %s")
+    data = [thread_id]
+
+    is_error = execute_query(sql, data, conn, cursor)
+    if is_error:
+        return is_error 
+
     close_connection(cursor, conn)               
+
 
     return success({"thread": thread_id})
 

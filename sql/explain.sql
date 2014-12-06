@@ -1,8 +1,10 @@
 #info
-SELECT * FROM forum;
-SELECT * FROM thread;
-SELECT * FROM user;
-SELECT * FROM followers;
+SELECT count(*) FROM post;
+SELECT count(*) FROM thread;
+SELECT count(*) FROM user;
+SELECT count(*) FROM forum;
+
+
 ###user
 # const
 EXPLAIN SELECT SQL_NO_CACHE id FROM user WHERE email="twh89@list.ru";
@@ -22,12 +24,16 @@ EXPLAIN SELECT SQL_NO_CACHE thread_id FROM subscriptions WHERE user_email = "alg
 #POST
 EXPLAIN SELECT SQL_NO_CACHE id FROM forum WHERE short_name = 'lru';
 
+EXPLAIN SELECT SQL_NO_CACHE * FROM post WHERE thread_id = 5 AND date>='2014-09-20 12:12:12';
+
 
 #THREAD
 EXPLAIN SELECT SQL_NO_CACHE id FROM subscriptions WHERE user_email = 'algx@list.ru' AND thread_id = 1;
 
 EXPLAIN SELECT SQL_NO_CACHE date, dislikes, forum_id, isClosed, isDeleted, likes,
 message, points, posts, slug, title, user_email, forum_sname FROM thread WHERE id = 5;
+
+
 
 
 #FORUM

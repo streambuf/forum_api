@@ -16,11 +16,6 @@ app.register_blueprint(post)
 app.register_blueprint(user)
 app.register_blueprint(other)
 
-@app.before_first_request
-def before_first_request():
-	g.cnx_pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="pool",
-		pool_size=10, autocommit=True, user='root',password='drovosek',host='localhost',database='forum_db')
-	print "hi"
 
 @app.route('/')
 def hello():

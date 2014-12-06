@@ -14,52 +14,20 @@ def forum_create():
         user_email = request.json['user']
     except:
         return error_code(Codes.invalid_query, "Not found requried params", conn, cursor)    
-
     
     conn = conn_pool.get_connection()
+
     cursor = conn.cursor()
-        
-    # check on unique
-    sql = ("SELECT id, user_email FROM forum WHERE short_name = %s")
-    data = [short_name]
+
+    sql = ("INSERT INTO forum (name, short_name, user_email) VALUES (%s, %s, %s)")
+    data = [name, short_name, user_email]
 
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
-        return is_error 
+        return error_code(Codes.not_found, 'user_email not found', cursor)
 
-    ret = cursor.fetchone()
-    # if exists
-    if ret:
-        forum_id = ret[0]
-        user_email = ret[1]
-     # else create new forum        
-    else:
-        #check user
-        sql = ("SELECT email FROM user WHERE email = %s")
-        data = [user_email]
+    forum_id = cursor.lastrowid 
 
-        is_error = execute_query(sql, data, conn, cursor)
-        if is_error:
-            return is_error 
-
-        ret = cursor.fetchone()
-        if ret is None:
-            return error_code(Codes.not_found, 'user_email not found', conn, cursor)
-
-        sql = ("INSERT INTO forum (name, short_name, user_email) VALUES (%s, %s, %s)")
-        data = [name, short_name, user_email]
-
-        is_error = execute_query(sql, data, conn, cursor)
-        if is_error:
-            return is_error
-
-        sql = ("select LAST_INSERT_ID() as forum_id;")
-        is_error = execute_query(sql, None, conn, cursor)
-        if is_error:
-            return is_error
-
-        ret = cursor.fetchone()
-        forum_id = ret[0] 
 
     close_connection(cursor, conn)
 
@@ -74,19 +42,21 @@ def forum_details():
 
     if forum is None:
         return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')
-      
-    resp = {}
-    resp['code'] = Codes.ok
-    resp['response'] = forum_info(forum)
+    
+    try:  
+        resp = {}
+        resp['code'] = Codes.ok
+        resp['response'] = forum_info(forum)
 
-    if resp['response'] and resp['response'].get('code'):
-        resp['code'] = resp['response'].get('code')
-        resp['response'] = resp['response'].get('response')
-           
-    # user info
-    elif related and related[0] == 'user':
-        resp['response']['user'] = user_info(resp['response']['user']) 
-
+        if resp['response'] and resp['response'].get('code'):
+            resp['code'] = resp['response'].get('code')
+            resp['response'] = resp['response'].get('response')
+               
+        # user info
+        elif related and related[0] == 'user':
+            resp['response']['user'] = user_info(resp['response']['user']) 
+    except:         
+        return  jsonify(code = Codes.unknown_error, response = 'Unknown error')
     return jsonify(resp)
 #-------------------------------------------------------------------------------------------------
 

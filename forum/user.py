@@ -21,38 +21,20 @@ def user_create():
     cursor = conn.cursor()
 
     # Optional
-    is_anonymous = request.json.get('isAnonymous', False)
-
-    # find user_id
-    sql = ("SELECT id FROM user WHERE email = %s")
-    data = [email]
+    is_anonymous = request.json.get('isAnonymous', False)       
+      
+    sql = ("INSERT INTO user (username, about, name, email, isAnonymous)" 
+            "VALUES (%s, %s, %s, %s, %s)")
+    data = [username, about, name, email, is_anonymous]
 
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
-        return is_error 
+        return jsonify(code = Codes.user_exists, response = 'This user already exists') 
 
-    ret = cursor.fetchone()
-    if ret:
-        return error_code(Codes.user_exists, 'This user already exists', conn, cursor) 
-    else:
-        sql = ("SELECT MAX(id) FROM user")
-        cursor.execute(sql)
-        ret = cursor.fetchone()
-        # create id for user        
-        if ret[0] is None:
-            user_id = 1
-        else:
-            user_id = ret[0] + 1        
-          
-        sql = ("INSERT INTO user (id, username, about, name, email, isAnonymous)" 
-                "VALUES (%s, %s, %s, %s, %s, %s)")
-        data = [user_id, username, about, name, email, is_anonymous]
-
-        is_error = execute_query(sql, data, conn, cursor)
-        if is_error:
-            return is_error
-
+    user_id = cursor.lastrowid
+        
     close_connection(cursor, conn)
+
 
     return success(
                 {'about': about, 'email': email, 'id': user_id,
@@ -69,10 +51,12 @@ def user_details():
     resp = {}
     resp['code'] = Codes.ok
     resp['response'] = user_info(email)
-
-    if resp['response'] and resp['response'].get('code'):
-        resp['code'] = resp['response'].get('code')
-        resp['response'] = resp['response'].get('response')         
+    try: 
+        if resp['response'] and resp['response'].get('code'):
+            resp['code'] = resp['response'].get('code')
+            resp['response'] = resp['response'].get('response') 
+    except:         
+        return  jsonify(code = Codes.unknown_error, response = 'Unknown error')                
 
     return jsonify(resp)
 
@@ -89,21 +73,12 @@ def user_follow():
     conn = conn_pool.get_connection()
     cursor = conn.cursor()    
 
-    sql = ("SELECT id FROM followers WHERE user_email = %s AND follower_email = %s")
+    sql = ("INSERT INTO followers (user_email, follower_email) VALUES (%s, %s)")
     data = [followee, follower]
 
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
-        return is_error 
-
-    ret = cursor.fetchone()
-    if ret is None:
-        sql = ("INSERT INTO followers (user_email, follower_email) VALUES (%s, %s)")
-        data = [followee, follower]
-
-        is_error = execute_query(sql, data, conn, cursor)
-        if is_error:
-            return is_error
+        return is_error
 
     close_connection(cursor, conn)               
 

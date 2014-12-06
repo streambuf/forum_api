@@ -16,11 +16,12 @@ def post_create():
         user_email = request.json['user']
         forum_short_name = request.json['forum']
     except:
-        return error_code(Codes.invalid_query, "Not found requried params", conn, cursor)
+        return jsonify(code = Codes.invalid_query, response = "Not found requried params")
 
     conn = conn_pool.get_connection()
     cursor = conn.cursor()            
     
+
     # Optional
     parent_id = request.json.get('parent')
     is_approved = request.json.get('isApproved', False)
@@ -29,19 +30,6 @@ def post_create():
     is_spam = request.json.get('isSpam', False)
     is_deleted = request.json.get('isDeleted', False)
 
-    # find forum_id
-    sql = ("SELECT id FROM forum WHERE short_name = %s")
-    data = [forum_short_name]
-
-    is_error = execute_query(sql, data, conn, cursor)
-    if is_error:
-        return is_error 
-
-    ret = cursor.fetchone()
-    if ret:
-        forum_id = ret[0]
-    else:
-        return error_code(Codes.not_found, 'forum not found', conn, cursor)   
 
     sql = ("INSERT INTO post (message, forum, date, isApproved, isDeleted, isEdited, isHighlighted,"
         "isSpam, parent_id, user_email, thread_id) VALUES"
@@ -53,13 +41,9 @@ def post_create():
     if is_error:
         return is_error
 
-    sql = ("select LAST_INSERT_ID() as post_id;")
-    is_error = execute_query(sql, None, conn, cursor)
-    if is_error:
-        return is_error
 
-    ret = cursor.fetchone()
-    post_id = ret[0] 
+    post_id = cursor.lastrowid
+
 
     close_connection(cursor, conn)
 
@@ -82,16 +66,17 @@ def post_details():
     options = {}
     for rel in related:
        options[rel] = True      
+    try:   
+        resp = {}
+        resp['code'] = Codes.ok
+        resp['response'] = post_info(post_id, options)
 
-    resp = {}
-    resp['code'] = Codes.ok
-    resp['response'] = post_info(post_id, options)
+        if resp['response'] and resp['response'].get('code'):
+            resp['code'] = resp['response'].get('code')
+            resp['response'] = resp['response'].get('response')
 
-    if resp['response'] and resp['response'].get('code'):
-        resp['code'] = resp['response'].get('code')
-        resp['response'] = resp['response'].get('response')
-
-    print resp    
+    except:         
+        return  jsonify(code = Codes.unknown_error, response = 'Unknown error') 
         
     return jsonify(resp)
 
@@ -129,7 +114,10 @@ def post_remove():
     ret = cursor.fetchone()        
 
     sql = ("UPDATE thread SET posts = posts - 1 WHERE id = %s")
-    data = [ret[0]]
+    if ret:
+        data = [ret[0]]
+    else:
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')    
 
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
@@ -168,7 +156,11 @@ def post_restore():
     ret = cursor.fetchone()        
 
     sql = ("UPDATE thread SET posts = posts + 1 WHERE id = %s")
-    data = [ret[0]]
+    
+    if ret:
+        data = [ret[0]]
+    else:
+        return  jsonify(code = Codes.invalid_query, response = 'Not found requried params')  
 
     is_error = execute_query(sql, data, conn, cursor)
     if is_error:
