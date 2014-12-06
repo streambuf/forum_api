@@ -4,7 +4,7 @@ import mysql.connector
 
 
 conn_pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="pool",
-		pool_size=10, autocommit=True, user='root',password='drovosek',host='localhost',database='forum_db')
+		pool_size=4, autocommit=True, user='root',password='drovosek',host='localhost',database='forum_db')
 
 class Codes:
 	ok = 0
