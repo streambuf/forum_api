@@ -1,9 +1,35 @@
 #info
 SELECT count(*) FROM post;
+select * from post;
 SELECT count(*) FROM thread;
 SELECT count(*) FROM user;
-SELECT count(*) FROM forum;
+SELECT * FROM forum where id = 1;
 
+use forum_db;
+
+EXPLAIN select SQL_NO_CACHE  * from post 
+where forum='tqzf' AND date >= '2012-09-20 12:12:12' 
+ORDER BY date DESC LIMIT 100;
+
+SELECT SQL_NO_CACHE email FROM user WHERE EXISTS (
+SELECT * FROM post WHERE forum = 'tqzf' AND user_email = user.email)
+ AND user.id > 5 ORDER BY name LIMIT 67;
+
+SELECT SQL_NO_CACHE email FROM user WHERE EXISTS (
+SELECT DISTINCT user_email FROM post WHERE post.forum = 'tqzf')
+ORDER BY name asc LIMIT 67;
+
+EXPLAIN SELECT SQL_NO_CACHE DISTINCT user_email FROM post 
+JOIN user ON post.user_email = user.email 
+AND post.forum = 'tqzf' 
+ORDER BY name asc LIMIT 67;
+
+UPDATE thread SET posts = (SELECT COUNT(*) FROM post where thread_id = 1), isDeleted = 1 WHERE id = 1;
+select * from thread where id = 1;
+
+ALTER TABLE forum_db.post ENABLE KEYS;
+ALTER TABLE forum_db.user ENABLE KEYS;
+ALTER TABLE forum_db.thread ENABLE KEYS;
 
 ###user
 # const

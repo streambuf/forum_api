@@ -78,8 +78,11 @@ def forum_list_users():
     params = build_dict_params(request, ['forum', 'since_id', 'limit', 'order'])
     params['user'] = params['forum']
               
-    params['sql'] = ("SELECT DISTINCT user_email FROM post"
-        " JOIN user ON post.user_email = user.email AND post.forum = %s")
+    #params['sql'] = ("SELECT DISTINCT user_email FROM post"
+    #    " JOIN user ON post.user_email = user.email AND post.forum = %s")
+    
+    params['sql'] = ("SELECT email FROM user WHERE EXISTS ("
+        "SELECT * FROM post WHERE forum = %s AND user_email = user.email) ")
 
     return get_list_users(params)
 #-------------------------------------------------------------------------------------------------
