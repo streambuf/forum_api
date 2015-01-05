@@ -12,6 +12,8 @@ CREATE TABLE user (
 ) ENGINE=InnoDB;
 
 ALTER TABLE user ADD UNIQUE INDEX c_email_id (email, id);
+#ALTER TABLE user ADD UNIQUE INDEX i_email (email);
+ALTER TABLE user ADD INDEX i_name USING HASH (name);
 
 
 CREATE TABLE forum (
@@ -43,6 +45,7 @@ CREATE TABLE thread (
     INDEX idate (date),
     INDEX iforum_sname (forum_sname)
 ) ENGINE=InnoDB;
+
 
 ALTER TABLE thread ADD INDEX c_user_date (user_email, date);
 ALTER TABLE thread ADD INDEX c_forum_date (forum_sname, date);
