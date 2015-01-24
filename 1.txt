@@ -1,0 +1,5 @@
+/db/api/post/create/
+
+{"message": "2.1",   "parent": 4,   "isApproved": true, "user": "example@mail.ru", "date": "2014-01-01 00:00:01",  "isSpam": false, "isHighlighted": true, "thread": 1, "forum": "forumwithsufficientlylargename", "isDeleted": false, "isEdited": true}
+
+http://127.0.0.1:5000/db/api/thread/listPosts/?thread=1&sort=tree

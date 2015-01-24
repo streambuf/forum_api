@@ -60,7 +60,7 @@ def get_list_posts(args):
 
     fields = ("date, dislikes, forum, isApproved, isDeleted, isEdited,"
         " isHighlighted, isSpam, likes, message, parent_id, points, thread_id,"
-        " user_email, id")
+        " user_email, id, path, level")
 
     sql = "SELECT " + fields + " FROM post WHERE"
 
@@ -78,12 +78,27 @@ def get_list_posts(args):
 
     if args.get('since'):
         sql = sql + " AND date >= %s"
-        data.append(args['since'])   
-                
-    if args.get('order'):
-        sql = sql + " ORDER BY date " + args['order']
+        data.append(args['since'])
+
+    sort = args.get('sort')    
+
+    if sort == 'tree':
+        if args.get('order') == 'asc':
+            sql = sql + " ORDER BY path asc"
+        else:
+             sql = sql + " ORDER BY SUBSTR(path, 1, 6) DESC"
+
     else:
-         sql = sql + " ORDER BY date " + "DESC"  
+        sort_type = ' date '         
+        if sort == 'parent_tree':
+            sql = sql + " AND parent_id IS NULL"
+            sort_type = ' path '
+                
+        if args.get('order'):
+            sql = sql + " ORDER BY" + sort_type + args['order']
+        else:
+             sql = sql + " ORDER BY" + sort_type + "DESC"  
+
 
     if args.get('limit'):
         sql = sql + " LIMIT %s"
@@ -94,8 +109,25 @@ def get_list_posts(args):
         return is_error
 
     resp = []
+    level = 0
+    num_points = 0 
     
     rets = cursor.fetchall()
+
+    #find childs
+    if sort == 'parent_tree':
+        temp_array = []
+        for ret in rets:
+            path = ret[15]
+
+            sql = "SELECT " + fields + " FROM post WHERE path LIKE %s ORDER BY path"
+            data = [path + '%']
+            is_error = execute_query(sql, data, cursor)
+            
+            if is_error:
+                return is_error
+            temp_array.extend(cursor.fetchall())
+        rets = temp_array    
 
     for ret in rets:
         forum = ret[2]
@@ -114,9 +146,33 @@ def get_list_posts(args):
             'id': ret[14],
             'isApproved': bool(ret[3]), 'isDeleted': bool(ret[4]), 'isEdited': bool(ret[5]),
             'isHighlighted': bool(ret[6]), 'isSpam': bool(ret[7]), 'likes': ret[8], 'message': ret[9],
-            'parent': ret[10], 'points': ret[11], 'thread': thread, 'user': user}        
+            'parent': ret[10], 'points': ret[11], 'thread': thread, 'user': user, 'path': ret[15],
+            'childs': [], 'level': ret[16] }        
         
-        resp.append(post)
+        if sort == 'tree' or sort == 'parent_tree':
+            
+            plevel = post["level"]
+            if plevel == 0:
+                cur_post = post
+                parent_post = cur_post
+                resp.append(parent_post)
+                level = 1
+            elif plevel == level:
+                cur_post['childs'].append(post)
+            elif plevel > level:
+                cur_post = cur_post['childs'][-1]
+                cur_post['childs'].append(post)
+                level = level + 1;
+            elif plevel < level:
+                level = 0
+                cur_post = parent_post
+                while (plevel != level + 1):
+                    cur_post = cur_post['childs'][-1]
+                    level = level + 1
+                cur_post['childs'].append(post)
+
+        else:
+            resp.append(post)
 
     close_connection(cursor)
           
